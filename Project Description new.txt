@@ -1,0 +1,488 @@
+Here is the full project plan converted to clean Markdown, ready to be used.
+
+---
+
+# Project Design Document: Sports Equipment Marketplace
+
+**Project Description:**
+Build a web platform for a 3-month project. The project is a marketplace for sports equipment (rent, buy, sell, exchange).
+
+**Core Features:**
+* User authentication (sign up, log in).
+* Users can create, edit, and delete their own listings (with photos).
+* A detailed search page with filters (category, price, type).
+* A user-to-user secure messaging system.
+* A user reputation system (reviews/ratings).
+
+---
+
+## Homepage Plan
+
+### 1. Header / Navbar (Persistent)
+This component will be on every page. Your 3-column layout is perfect.
+* **Left Column:**
+    * Logo: Your site's logo. Links back to the Homepage (/).
+* **Middle Column:**
+    * Search Bar: A simple text input with a search icon. When a user types and hits "Enter," it should take them to the Search Results Page.
+* **Right Column (User Actions):**
+    * Favorites (Heart Icon): Links to the favorites page. This page shows all listings the user has "liked".
+    * Inbox (Message Icon): Links to the messages page. Shows a list of all conversations. A small badge with a number could show unread messages.
+    * "Post an Ad" Button: A clear, call-to-action button. Links to the listing new page.
+    * Account (Icon/Text):
+        * If Guest: Shows "Log In / Register." Clicking it could open a modal or go to a login page.
+        * If Logged In: Shows the user's profile picture or an "Account" icon. This should be a dropdown menu.
+* **Guest Behavior (Favorites):** If a guest (not logged in) clicks the Favorites icon in the header or on any product card, they will be prompted to log in or register (e.g., redirected to the /auth page).
+* **Account Dropdown (for logged-in users):**
+    * My Profile: Links to your public profile page.
+    * Manage My Listings: Links to a dashboard page where users can see, edit, or delete the items they've posted.
+    * My Orders / History: This could be a page showing items you've agreed to buy, sell, or rent.
+    * Account Settings: Links to (to change email, password, etc.).
+    * Log Out: A button to end the user's session.
+
+### 2. Megamenu (Persistent Sub-Header)
+This sits just below the main navbar. It's the primary navigation for browsing.
+* "All Categories": The first link. Hovering or clicking this should open a large dropdown menu (the "megamenu") that shows all 5 main categories and their subcategories in one place.
+* "Basketball" / "Soccer" / "Swimming" / "Tennis" / "Volleyball": These links are next to "All Categories". Hovering or clicking one of these should open a smaller megamenu that only shows the subcategories for that specific sport (e.g., hover "Basketball" -> see "Shoes," "Jerseys," "Balls").
+
+### 3. Hero / Main Banner
+This is the first big visual component a user sees.
+* Background: A large, high-quality, eye-catching image (e.g., a collage of sports, or a single action shot).
+* Text (Overlay): A large, bold tagline. "Discover the best deals in sports."
+* Button: A "Shop Now" button. This button should link to the main Search Results Page with no filters applied, showing all items.
+
+### 4. Shop by Category
+A visually appealing way to guide users.
+* Title: A clear header like "Buy and sell with millions of athletes."
+* Component: A horizontal row of your 5 main categories.
+* Each Item: A "card" (likely a soft-cornered square) containing:
+    1.  A representative image (e.g., a photo of the sport).
+    2.  The category name ("Basketball") underneath.
+    3.  This entire card should link to the Search Results Page pre-filtered for that category (e.g., /browse?category=basketball).
+
+### 5. Recently Viewed Section
+This makes the site feel personal and smart.
+* Title: "Recently Viewed."
+* Component: A horizontal scrolling carousel of Product Cards.
+* Logic: This section should be empty if the user has no viewing history.
+* **Product Card (Reusable Component):** Each card in the carousel should show a listing's:
+    * Thumbnail Image
+    * Title
+    * Price
+    * A "Favorite" (heart) icon on the card itself.
+* **Technical Note for AI:** This feature is powered by the user's browser. When a user visits a product page, you'll use JavaScript to save that product's ID to localStorage. The homepage component will then read those IDs from localStorage, fetch the item details from the database, and display them here.
+
+### 6. Recently Added Section
+This keeps the homepage content fresh.
+* Title: "Recently Added."
+* Component: Another horizontal scrolling carousel, using the exact same "Product Card" design as the "Recently Viewed" section.
+* Logic: This is much simpler than the "Recently Viewed" section.
+* **Technical Note for AI:** This is a simple backend API call. The homepage will ask the backend for /api/listings/recent. The backend will run a database query like: `SELECT * FROM listings ORDER BY created_at DESC LIMIT 10` ...and send those 10 items to the frontend to be displayed.
+
+### 7. Trending Searches Section
+A great way to drive engagement and help users discover items.
+* Title: "Trending Searches."
+* Component: A collection of "pills" or "tags" (rounded, clickable buttons).
+* Each Tag: Contains a popular search term (e.g., "Used Football Cleats," "Tennis Racket"). Clicking a tag performs a search for that term (links to example /browse?q=Used+Football+Cleats).
+* **Project Scope Tip:** For your 3-month project, you don't need to build a complex system to track actual user searches. You can just hard-code 5-10 popular search terms that you think are relevant. This gives you the full feature's "look and feel" with 10% of the work.
+
+### 8. Footer (Persistent)
+Like the header, this is on every page. A great simple footer for your project would have 3 columns:
+* **Column 1 (About):**
+    * About Us
+    * How it Works
+* **Column 2 (Help):**
+    * FAQ
+    * Contact Us
+    * Terms of Service
+* **Column 3 (Browse):**
+    * Link to Basketball
+    * Link to Soccer
+    * Link to Swimming
+    * ...etc.
+* **Bottom Bar:** A simple line with 2025 [Your Project Name]. All rights reserved.
+
+---
+
+## Search Results / Browse Page Plan
+
+### 1. Conditional Page Header
+This component sits just below the main Navbar/Megamenu and changes based on how the user got here.
+* **If Navigated by Category (e.g., user clicked "Basketball"):**
+    * Display a simple, wide banner.
+    * Title: The category name (e.g., "Basketball Equipment").
+    * Subtitle: A short, descriptive "flavor text" (e.g., "Find deals on shoes, jerseys, balls, and more.").
+* **If Navigated by Search Bar (e.g., user searched for "cleats"):**
+    * Display a simple text header.
+    * Title: "Search results for: 'cleats'" (the search term should be in bold).
+
+### 2. Filter Sidebar (Left Side)
+This is the main navigation for refining results. All sections should be collapsible (with a +/- icon) to keep it clean.
+* **Shop by Category:**
+    * Logic: This section should be context-aware.
+    * If on the main /browse page (all items): It should show your 5 main categories (Basketball, Soccer, etc.).
+    * If inside a category (e.g., /browse?category=soccer): It should show the subcategories for "Soccer" (e.g., "Cleats," "Jerseys," "Balls," "Shin Guards").
+* **Price:**
+    * Title: "Price"
+    * Inputs: Two simple text boxes: one for "Min" and one for "Max".
+    * Button: An "Apply" or arrow button right next to the boxes to submit the price filter. (This is simpler than a slider)
+* **Listing Type:**
+    * Title: "Listing Type"
+    * Options: A set of checkboxes. This is critical for your project idea.
+        * Buy
+        * Rent
+        * Exchange
+* **Condition:**
+    * Title: "Condition"
+    * Options: Checkboxes for item condition.
+        * New (with tags)
+        * Like New
+        * Good (minor wear)
+        * Used (visible wear)
+
+### 3. Main Content Area (Right Side)
+This area contains the controls, the grid of items, and the page navigation.
+* **A. Controls Row (Above the cards)**
+    * This is a horizontal bar for sorting and viewing.
+    * **Sort By (Dropdown Menu):**
+        * Default: "Sort by: Newest"
+        * Options:
+            * Newest
+            * Price: Low to High
+            * Price: High to Low
+    * **Results Count (Text):**
+        * Simple text: "Showing 1-32 of 1,572 results"
+    * **View Toggle:**
+        * This is a great, simple addition. Add two small icons:
+        * Grid View Icon (four squares): Shows the 4x8 card layout. (This is the default).
+        * List View Icon (three lines): Toggles to a "list" layout where each item is a single row, showing the image on the left and title/price/seller on the right. This is great for accessibility and scanning.
+* **B. Product Grid**
+    * Component: A responsive grid that holds the "Product Cards."
+    * Layout: As you specified:
+        * Desktop: 4 columns
+        * Tablet: 3 columns
+        * Mobile: 2 columns
+* **C. Product Card (Reusable Component)**
+    * This is the exact same component from your homepage carousels. Defining it once is efficient.
+    * Image: Main photo.
+    * Favorite Icon: Top-right corner (heart that fills on click).
+    * Title: Shortened product title.
+    * Price: e.g., $85
+    * Retail Price (Optional): e.g., Retail $120 (in a lighter color).
+    * Seller Username: Bottom-left corner.
+    * Entire card is clickable and links to the Listing Detail Page.
+* **D. Pagination (Below the cards)**
+    * Component: A standard pagination bar.
+    * Layout: [Previous] [1] [2] [3] [4] [5] [...] [100] [Next]
+    * The current page number should be highlighted.
+
+---
+
+## Listing Detail Page Plan
+
+### 1. Breadcrumbs (Above Everything)
+This is a small but critical navigation aid that shows the user's path.
+* Location: Sits just below the main header, spanning the top of the page.
+* Example: Home / Soccer / Cleats / Nike Mercurial Superfly
+* Each part (except the last one) is a link to that specific category page.
+
+### 2. Left Column: Image Gallery
+This column is purely visual and dedicated to showcasing the product.
+* **Main Image:** A large, high-resolution image.
+    * Arrows: "Previous" (<) and "Next" (>) arrows will be overlaid on the left/right sides of this image if more than one photo exists.
+    * Click Action: Clicking this image will open a "lightbox" or "modal," showing the image in a full-screen, focused view.
+* **Thumbnail Previews:**
+    * Location: A horizontal row directly beneath the main image.
+    * Function: Shows all available images as small, square thumbnails. The currently selected main image will have a border or be "active," while the others are slightly grayed out. Clicking a thumbnail changes the main image.
+
+### 3. Right Column: Information & Actions
+This column contains all the data and the user's "next steps." It's best to structure this in a clear, top-to-bottom hierarchy.
+* **A. Title & Price**
+    * Listing Title: The full, bold title of the item (e.g., "Used Nike Mercurial Superfly 8 Elite FG Cleats").
+    * Price Block:
+        * Main Price: Large, bold text (e.g., $85.00)
+        * Retail/Save Info: Smaller, lighter text directly below. Your example is perfect: Retail: $120.00 (Save $35.00)
+* **B. Action Buttons**
+    * "Make Offer" (Primary Button):
+        * Style: A large, solid-color button.
+        * Action: Clicking this opens a small pop-up (a "modal") where a user can type in an offer price. Submitting this sends a pre-formatted message to the seller via the messaging system (e.g., "New offer for 'Nike Cleats': $75").
+    * "Favorite" (Secondary Button):
+        * Style: An outline-style button with a heart icon and the text "Favorite."
+        * Action: Toggles the "saved" state for this item, adding it to the user's favorites page.
+* **C. Seller Information**
+    * This block builds trust. It should be a clean "card" that separates it from the listing info.
+    * Layout:
+        * Small round profile picture.
+        * Next to it:
+            * Username (Clickable, links to their public profile: /profile/username)
+            * Member Since: Member since: Jan 2024
+            * Reputation: 4.8 (15 Reviews) (This is a must-have)
+* **"Message Seller" Button:**
+    * Style: A prominent button right under the seller's info.
+    * Action: This is the most important button. It links directly to the messaging system to ask a simple question.
+* **D. Specifications**
+    * A quick, scannable list of key details.
+    * Category: Soccer
+    * Subcategory: Cleats
+    * Listing Type: For Sale (or For Rent/For Exchange)
+    * Condition: Like New
+    * Brand: Nike (if provided)
+* **E. Description**
+    * Title: A bold Description header.
+    * Content: The full, free-text description from the seller.
+
+### 4. Related Items (Bottom of Page)
+* Title: "You might also like" or "More from this seller."
+* Content: A horizontal scrolling carousel (just like on the homepage) showing other Product Cards.
+* Logic: This could show other items in the same subcategory (e.g., other cleats) or other items from the same seller.
+
+---
+
+## Create New Listing Page Plan
+
+**Page Layout:** A Simple, One-Page Form. The page will be a single, top-to-bottom form. We'll group related fields into sections to make it less intimidating.
+
+* **Section 1: What are you listing?**
+    * Title (Mandatory):
+        * A simple, single-line text input.
+        * Placeholder text: "e.g., Used Nike Mercurial Soccer Cleats - Size 11"
+    * Category (Mandatory):
+        * This will be a cascading dropdown system.
+        * Dropdown 1 (Main Category): User selects from Basketball, Soccer, Swimming, Tennis, Volleyball.
+        * Dropdown 2 (Subcategory): Based on the first choice, this dropdown appears. (e.g., If Soccer is chosen, this shows Cleats, Jerseys, Balls, Shin Guards).
+    * Listing Type (Mandatory):
+        * This tells the system how to categorize the ad.
+        * Options: Radio buttons or a dropdown.
+            * For Sale
+            * For Rent
+            * For Exchange
+* **Section 2: Tell us about the item**
+    * Description (Optional, but recommended): A larger text box (a textarea). Your placeholder text idea is perfect: "Description (e.g., Blue Nike Vapor cleats Size 10. Worn for 5 games. A few scuffs from normal use...)".
+    * Condition (Mandatory): This is needed for your search filters to work.
+        * Options: A simple dropdown.
+            * New (with tags)
+            * Like New
+            * Good (minor wear)
+            * Used (visible wear)
+    * Brand (Optional): A simple text input.
+        * Placeholder text: "e.g., Nike, Adidas, Wilson"
+* **How this handles your "Filters/Tags" idea:**
+    * You don't need a separate "tags" field. The system will automatically create the filters based on the user's input in the Category, Condition, and Brand fields. When a user lists an item as Soccer (Category) and Nike (Brand), your "Browse Page" can automatically show it when someone filters for Soccer or Nike. This is much cleaner and more reliable than letting users type in their own tags.
+* **Section 3: Photos**
+    * Upload Photos (Mandatory - at least 1): A large box that says "Drag & drop photos here, or click to browse."
+    * When photos are added, they appear as small preview thumbnails in a grid below the upload box.
+    * Each thumbnail must have:
+        * A small X icon in its corner to Remove the photo.
+        * The first photo in the list will be the main "cover photo" for the listing.
+        * (Optional, but very good): Allow the user to drag the thumbnails to re-order them.
+* **A much easier, 99% as-good solution (for photo editing):**
+    1.  When you build the "Product Card" component, you will use CSS to make all images fit into a square space (using `object-fit: cover`). This automatically fixes any alignment issues, regardless of what the user uploads.
+    2.  In the uploader, just add a simple text hint: "Hint: For best results, upload square photos!" This saves you weeks of work and debugging.
+* **Section 4: Set your terms**
+    * Price (Mandatory): Listing Price: The main price you want.
+        * Retail Price (Optional): The price it costs new. (Just as you planned).
+    * Quantity (Mandatory): Your idea is perfect. A number input that defaults to 1, with + and buttons on the sides.
+    * Location (Mandatory):
+        * Country: This will be a read-only field, locked to Latvia (as you said, to limit the project scope).
+        * City / Town: A simple text input.
+* **Section 5: Submit**
+    * "Post Listing" Button (Primary):
+        * The main button to submit the form. The AI will need to add validation (e.g., "You forgot to add a Title!").
+    * "Save as Draft" Button (Secondary):
+        * A very nice-to-have feature. It saves the form data without making the listing public, so the user can finish it later from their dashboard.
+
+---
+
+## User Dashboard and Profile Page Plan
+
+### 1. The Public Profile Page (Your "Storefront")
+This is what another user sees, designed to build trust and showcase items.
+* **Cover Photo / Hero Banner:**
+    * A large banner at the top.
+    * This page just displays the cover photo. The user will upload it in their private Account Settings.
+* **Main Info Block (Top-Left):**
+    * Profile Picture: A circular or square photo.
+    * Username: @username.
+    * User Stats:
+        * Reputation: 4.8 (15 Reviews) (This is the most important stat!)
+        * Member Since: Member since: Jan 2024
+        * Last Active: Last Active: Today
+    * Bio: A short text block for the user's description.
+* **User's Listings (Main Content):**
+    * This is the main part of the page, showing a grid of their public listings.
+    * Tabs:
+        * Available (Default): Shows all items this user is currently selling/renting.
+        * Sold / Exchanged: Shows a history of completed deals to build trust.
+    * Listing Controls:
+        * A small search bar: "Search this user's items".
+        * A simple filter dropdown (e.g., "Filter by Category").
+    * Listing Grid: A grid of the standard "Product Cards".
+
+### 2. The Private Dashboard (Your "Control Center")
+This is the private /dashboard page, which acts as a container. The best layout is a sidebar navigation that controls a main content area.
+* **Dashboard Sidebar Menu:**
+    * My Listings
+    * Messages (Links to the /messages page)
+    * Favorites (Links to the /favorites page)
+    * Order History
+    * Account Settings
+    * Log Out
+* **Main Content Area:** When you click a sidebar link, this area changes to show the relevant page.
+
+### 3. My Listings Page (A Dashboard Section)
+This is the main management page, loaded when you click My Listings in the sidebar. This is where you manage your drafts and active items.
+* Layout: A list or table is better than a grid for management.
+* Tabs:
+    * Available: All your active, public listings.
+    * Drafts: All listings you saved as a draft and haven't published.
+    * Sold / Exchanged: Listings you have marked as completed.
+* Listing Row: Each item in the list should show:
+    * Item Info (Thumbnail, Title, Price).
+    * Status (e.g., "Active," "Draft").
+    * Date Posted.
+    * Actions (The Key Part):
+        * Edit: Links to the "Create New Listing" page, but pre-fills all the item's data (title, photos, etc.) for editing.
+        * Delete: A button that asks for confirmation before deleting.
+        * Mark as Sold: This button moves the listing to the Sold tab and triggers the review flow on the Order History page.
+
+### 4. Order History & Review Flow (A Dashboard Section)
+This page loads when you click Order History and is the heart of your reputation system.
+* **Page (/dashboard/history):**
+    * Tabs:
+        1.  Purchased: Items you have bought or rented.
+        2.  Sold: Items you have sold or rented out.
+    * Transaction List: A list of transactions showing:
+        1.  Item Name.
+        2.  The other user's username.
+        3.  Date of completion.
+        4.  Action / Status:
+            * If no review is left: A button will show: "Leave a Review".
+            * If a review has been left: It will show "Review Submitted."
+* **The "Leave a Review" Modal (Pop-up):**
+    * Trigger: Clicking the "Leave a Review" button.
+    * Content: A simple pop-up box with:
+        1.  Title: "Review your transaction with @username"
+        2.  Item: "Regarding: [Item Title]"
+        3.  Rating (Mandatory): A 1-to-5 star selection.
+        4.  Comment (Optional): A small text box.
+        5.  "Submit Review" Button: Saves the review.
+    * Connection: This submitted review directly feeds the Reputation: 4.8 stat on the Public Profile Page.
+
+### 5. Account Settings Page (A Dashboard Section)
+This page loads when you click Account Settings and is where the user manages their identity.
+* **Section 1: Public Profile**
+    * This is where you edit the items seen on your Public Profile.
+    * Profile Picture: "Upload New Photo" button.
+    * Cover Photo: "Upload Cover Photo" button.
+    * Bio: A text box to write or edit your public bio.
+* **Section 2: Account Credentials**
+    * Username:
+        * Shows current: Username: atis.
+        * "Change" button reveals a text field, validation rules, and "Save" / "Cancel" buttons.
+    * Email:
+        * Shows current: Email: atis.balodis...
+        * "Change" button with similar logic.
+    * Password:
+        * "Change Password" button reveals fields for "Current Password," "New Password," and "Confirm New Password".
+* **Section 3: Security & Danger Zone**
+    * Phone Number: "Add phone number" button.
+    * Delete Account:
+        * A red, high-contrast "Delete Account" button.
+        * This must open a confirmation pop-up asking the user to type "DELETE" to confirm.
+
+---
+
+## Messaging / Inbox Page Plan
+
+### 1. The Two-Pane Layout
+The entire page will be split into two main columns:
+* Left Column (Conversation List): A list of all your different chats.
+* Right Column (Chat Window): The active chat you have selected.
+
+### 2. Left Column: Conversation List
+This is a scrollable list of all the conversations you are part of.
+* Header: A simple title like "Inbox."
+* Conversation "Preview" Cards: Each item in the list is a small, clickable card with:
+    * User Info: The profile picture and username of the other person in the chat.
+    * Last Message Preview: A snippet of the most recent message (e.g., "Okay, is $75 fine?").
+    * Timestamp: When the last message was sent (e.g., "5m ago").
+    * Unread Indicator: A small dot or a bolded username if the message is new.
+* Behavior:
+    * Clicking a "Preview Card" makes it the "active" chat, and its contents load in the Right Column.
+    * The "active" card should have a different background color (e.g., light blue) so you know which one you're viewing.
+
+### 3. Right Column: Active Chat Window
+This is where the actual conversation happens.
+* Header: At the top, this section should show:
+    * The other user's profile picture and username.
+    * Crucially: A small link to the item this chat is about (e.g., "Regarding: Used Nike Mercurial Cleats"). This is essential for a marketplace.
+* Message History:
+    * This is the main, scrollable area showing all the messages.
+    * Your Messages: Shown in a bubble on the right side (e.g., blue).
+    * Their Messages: Shown in a bubble on the left side (e.g., grey).
+    * Each bubble contains the message text and a small timestamp underneath.
+* Message Input Box:
+    * A simple text box at the very bottom that says "Type your message..."
+    * A "Send" button (or the user can press Enter).
+
+**How it All Connects:**
+1.  A buyer on your Listing Detail Page clicks the "Message Seller" button.
+2.  The system sends them to this Messaging Page (messages).
+3.  If a chat for this item/user doesn't exist, a new one is created.
+4.  This new chat (e.g., "Chat about Nike Cleats with @username") appears in the Left Column and opens in the Right Column.
+5.  The buyer types their first message ("Hi, is this still available?") and hits "Send."
+
+---
+
+## Login & Register Page Plan
+
+### The Authentication Page (/auth)
+This will be a single, simple page with a centered content box. The link in the header ("Log In / Register") will point here.
+The box will have two tabs: "Log In" (which is shown by default) and "Register".
+
+**1. "Log In" Tab (Default View)**
+This is the first thing a user sees when they land on the auth page.
+* Title: "Log In to Your Account"
+* Form Fields:
+    * Email Address: A simple text input.
+    * Password: A password input (hides typing).
+* Button:
+    * A primary button: "Log In".
+* Links:
+    * Bottom Link: "Don't have an account? Register here" (This just switches to the "Register" tab).
+
+**2. "Register" Tab (Sign Up)**
+This is what the user sees when they click the "Register here" link. The content of the box changes.
+* Title: "Create Your Account"
+* Form Fields:
+    * Username (Mandatory): A text input.
+        * Helper Text: "This will be your public name (e.g., @johnsmith). No spaces or special characters."
+    * Email Address (Mandatory): A simple text input.
+    * Password (Mandatory): A password input.
+    * Confirm Password (Mandatory): A second password input to ensure they typed it correctly.
+* Button:
+    * A primary button: "Create Account".
+* Link:
+    * Bottom Link: "Already have an account? Log In here" (This switches back to the "Log In" tab).
+
+**How It Connects:**
+1.  A guest user clicks "Log In / Register" in the main header.
+2.  They are taken to the auth page, seeing the "Log In" tab by default.
+3.  If they need to sign up, they click the link to switch to the "Register" tab.
+4.  After a successful login or registration, the system signs them in and redirects them to the Homepage (/).
+5.  The header now updates to show the "Account" dropdown, because they are no longer a guest.
+
+---
+
+## Favorites Page Plan
+
+### The Favorites Page (/favorites)
+This is one of the simplest pages on the site, as it just re-uses components we've already designed.
+* Location: This page is accessed from the header's heart icon or the dashboard link.
+* Title: A simple, large header: "My Favorites" or "My Wishlist."
+* Main Content: A standard Product Grid, identical to the one on the Search/Browse page.
+* Logic:
+    1.  The page will get the list of all listing\_id's that the logged-in user has "liked."
+    2.  It will fetch the details for those listings from the database.
+    3.  It will display them using the same reusable "Product Card" component.
+    4.  Key Feature: The heart icon on each card on this page should be "filled" by default. If the user clicks it, the item is removed from their favorites and the card disappears from the page.
+* Empty State: If the user has not "liked" any items, the page should just show a simple message: "You haven't added any items to your favorites yet."

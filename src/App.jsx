@@ -3,6 +3,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
 import ComingSoon from './pages/ComingSoon'
+import AuthPage from './pages/AuthPage'
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
             <Route path="/listings/new" element={<ComingSoon title="Create Listing" />} />
             <Route path="/favorites" element={<ComingSoon title="My Favorites" />} />
             <Route path="/messages" element={<ComingSoon title="Messages" />} />
-            <Route path="/auth" element={<ComingSoon title="Login / Register" />} />
+            <Route path="/auth" element={<AuthPage />} />
           </Routes>
         </main>
         <Footer />

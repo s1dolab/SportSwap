@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 function Header() {
   const { user, signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
 
@@ -30,6 +31,14 @@ function Header() {
     }
   }
 
+  const handleSearch = (e) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      navigate(`/browse?search=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery('')
+    }
+  }
+
   const username = user?.user_metadata?.username || 'User'
 
   return (
@@ -44,13 +53,15 @@ function Header() {
           </Link>
 
           {/* Middle: Search Bar */}
-          <div className="flex-1 max-w-xl mx-8">
+          <form onSubmit={handleSearch} className="flex-1 max-w-xl mx-8">
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for sports equipment..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
+          </form>
 
           {/* Right: Actions */}
           <div className="flex items-center space-x-6">

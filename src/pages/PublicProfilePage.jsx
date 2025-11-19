@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import ProductCard from '../components/ProductCard'
 
 function PublicProfilePage() {
   const { username } = useParams()
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -70,6 +73,62 @@ function PublicProfilePage() {
   const memberSince = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : ''
+
+  const handleSendMessage = async () => {
+    if (!user) {
+      navigate('/auth')
+      return
+    }
+
+    // Check if there are any active listings to message about
+    if (availableListings.length === 0) {
+      alert('This user has no active listings to message about.')
+      return
+    }
+
+    try {
+      // Use the first active listing as the conversation topic
+      const listing = availableListings[0]
+
+      // Check if a conversation already exists for this listing between buyer and seller
+      const { data: existingConversations, error: fetchError } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('listing_id', listing.id)
+        .eq('buyer_id', user.id)
+        .eq('seller_id', profile.id)
+
+      if (fetchError) throw fetchError
+
+      if (existingConversations && existingConversations.length > 0) {
+        // Conversation exists, navigate to it
+        navigate(`/messages?conversation=${existingConversations[0].id}`)
+      } else {
+        // Create new conversation
+        const { data: newConversation, error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            listing_id: listing.id,
+            buyer_id: user.id,
+            seller_id: profile.id,
+            last_message_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single()
+
+        if (createError) throw createError
+
+        // Navigate to the new conversation
+        navigate(`/messages?conversation=${newConversation.id}`)
+      }
+    } catch (error) {
+      console.error('Error creating/finding conversation:', error)
+      alert('Failed to start conversation. Please try again.')
+    }
+  }
+
+  // Check if viewing own profile
+  const isOwnProfile = user && profile && user.id === profile.id
 
   if (loading) {
     return (
@@ -180,9 +239,21 @@ function PublicProfilePage() {
 
             {/* Action Buttons */}
             <div className="flex-shrink-0 mt-4 md:mt-0">
-              <button className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
-                Send Message
-              </button>
+              {isOwnProfile ? (
+                <Link
+                  to="/dashboard/settings"
+                  className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium inline-block text-center"
+                >
+                  Edit Profile
+                </Link>
+              ) : (
+                <button
+                  onClick={handleSendMessage}
+                  className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+                >
+                  Send Message
+                </button>
+              )}
             </div>
           </div>
         </div>

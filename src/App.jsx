@@ -9,6 +9,7 @@ import BrowsePage from './pages/BrowsePage'
 import ListingDetailPage from './pages/ListingDetailPage'
 import FavoritesPage from './pages/FavoritesPage'
 import PublicProfilePage from './pages/PublicProfilePage'
+import MessagesPage from './pages/MessagesPage'
 import DashboardLayout from './components/DashboardLayout'
 import MyListingsPage from './pages/MyListingsPage'
 import OrderHistoryPage from './pages/OrderHistoryPage'
@@ -33,7 +34,7 @@ function App() {
               <Route path="history" element={<OrderHistoryPage />} />
               <Route path="settings" element={<AccountSettingsPage />} />
             </Route>
-            <Route path="/messages" element={<ComingSoon title="Messages" />} />
+            <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
             <Route path="/auth" element={<AuthPage />} />
           </Routes>
         </main>

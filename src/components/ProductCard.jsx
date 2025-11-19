@@ -1,10 +1,11 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
 function ProductCard({ listing, onFavoriteChange }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [isFavorited, setIsFavorited] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -184,10 +185,13 @@ function ProductCard({ listing, onFavoriteChange }) {
 
         {/* Seller */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-          <Link
-            to={`/profile/${listing.profiles?.username || 'user'}`}
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              navigate(`/profile/${listing.profiles?.username || 'user'}`)
+            }}
             className="flex items-center space-x-2 hover:text-blue-600 transition"
-            onClick={(e) => e.stopPropagation()}
           >
             {listing.profiles?.profile_picture_url ? (
               <img
@@ -205,7 +209,7 @@ function ProductCard({ listing, onFavoriteChange }) {
             <span className="text-sm text-gray-700">
               @{listing.profiles?.username || 'user'}
             </span>
-          </Link>
+          </button>
 
           {/* Location */}
           <div className="text-xs text-gray-500">

@@ -106,13 +106,48 @@ function ListingDetailPage() {
     }
   }
 
-  const handleMessageSeller = () => {
+  const handleMessageSeller = async () => {
     if (!user) {
       navigate('/auth')
       return
     }
-    // For now, just show coming soon alert
-    alert('Messaging system coming in Phase 4!')
+
+    try {
+      // Check if a conversation already exists for this listing between buyer and seller
+      const { data: existingConversations, error: fetchError } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('listing_id', id)
+        .eq('buyer_id', user.id)
+        .eq('seller_id', listing.user_id)
+
+      if (fetchError) throw fetchError
+
+      if (existingConversations && existingConversations.length > 0) {
+        // Conversation exists, navigate to it
+        navigate(`/messages?conversation=${existingConversations[0].id}`)
+      } else {
+        // Create new conversation
+        const { data: newConversation, error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            listing_id: id,
+            buyer_id: user.id,
+            seller_id: listing.user_id,
+            last_message_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single()
+
+        if (createError) throw createError
+
+        // Navigate to the new conversation
+        navigate(`/messages?conversation=${newConversation.id}`)
+      }
+    } catch (error) {
+      console.error('Error creating/finding conversation:', error)
+      alert('Failed to start conversation. Please try again.')
+    }
   }
 
   const handleMakeOffer = () => {

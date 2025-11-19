@@ -8,6 +8,7 @@ function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [profilePicture, setProfilePicture] = useState(null)
+  const [unreadCount, setUnreadCount] = useState(0)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
 
@@ -43,6 +44,76 @@ function Header() {
     } catch (error) {
       console.error('Error fetching profile picture:', error)
     }
+  }
+
+  // Fetch unread message count
+  useEffect(() => {
+    let channel
+
+    if (user) {
+      fetchUnreadCount()
+      channel = subscribeToMessages()
+    } else {
+      setUnreadCount(0)
+    }
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [user])
+
+  const fetchUnreadCount = async () => {
+    try {
+      // Get all conversations where user is buyer or seller
+      const { data: conversations, error: convError } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+
+      if (convError) throw convError
+
+      if (!conversations || conversations.length === 0) {
+        setUnreadCount(0)
+        return
+      }
+
+      const conversationIds = conversations.map(c => c.id)
+
+      // Count unread messages in those conversations
+      const { count, error: countError } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .in('conversation_id', conversationIds)
+        .neq('sender_id', user.id)
+        .is('read_at', null)
+
+      if (countError) throw countError
+      setUnreadCount(count || 0)
+    } catch (error) {
+      console.error('Error fetching unread count:', error)
+    }
+  }
+
+  const subscribeToMessages = () => {
+    const channel = supabase
+      .channel(`unread-messages-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+        },
+        () => {
+          // Refresh unread count on any message change
+          fetchUnreadCount()
+        }
+      )
+      .subscribe()
+
+    return channel
   }
 
   // Close dropdown when clicking outside
@@ -107,10 +178,15 @@ function Header() {
               </svg>
             </Link>
 
-            <Link to="/messages" className="text-gray-600 hover:text-blue-600 transition" title="Messages">
+            <Link to="/messages" className="relative text-gray-600 hover:text-blue-600 transition" title="Messages">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </Link>
 
             <Link

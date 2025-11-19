@@ -1,12 +1,38 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
-function ProductCard({ listing }) {
+function ProductCard({ listing, onFavoriteChange }) {
   const { user } = useAuth()
   const [isFavorited, setIsFavorited] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleFavoriteClick = (e) => {
+  // Check if listing is favorited on mount
+  useEffect(() => {
+    if (user) {
+      checkIfFavorited()
+    }
+  }, [user, listing.id])
+
+  const checkIfFavorited = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('listing_id', listing.id)
+        .single()
+
+      if (data) {
+        setIsFavorited(true)
+      }
+    } catch (error) {
+      // No favorite found, keep as false
+    }
+  }
+
+  const handleFavoriteClick = async (e) => {
     e.preventDefault() // Prevent navigation when clicking heart
 
     if (!user) {
@@ -15,8 +41,48 @@ function ProductCard({ listing }) {
       return
     }
 
-    // Toggle favorite state (we'll implement actual saving to DB in Phase 3)
-    setIsFavorited(!isFavorited)
+    if (loading) return // Prevent double clicks
+
+    setLoading(true)
+
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('listing_id', listing.id)
+
+        if (error) throw error
+        setIsFavorited(false)
+
+        // Notify parent component
+        if (onFavoriteChange) {
+          onFavoriteChange(listing.id, false)
+        }
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            listing_id: listing.id,
+          })
+
+        if (error) throw error
+        setIsFavorited(true)
+
+        // Notify parent component
+        if (onFavoriteChange) {
+          onFavoriteChange(listing.id, true)
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Get the first image or use a placeholder
@@ -60,7 +126,8 @@ function ProductCard({ listing }) {
         {/* Favorite Button */}
         <button
           onClick={handleFavoriteClick}
-          className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition z-10"
+          disabled={loading}
+          className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition z-10 disabled:opacity-50"
         >
           <svg
             className={`w-5 h-5 ${isFavorited ? 'fill-red-500 text-red-500' : 'fill-none text-gray-600'}`}
@@ -117,16 +184,28 @@ function ProductCard({ listing }) {
 
         {/* Seller */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
+          <Link
+            to={`/profile/${listing.profiles?.username || 'user'}`}
+            className="flex items-center space-x-2 hover:text-blue-600 transition"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {listing.profiles?.profile_picture_url ? (
+              <img
+                src={listing.profiles.profile_picture_url}
+                alt={listing.profiles.username}
+                className="w-6 h-6 rounded-full object-cover border border-gray-200"
+              />
+            ) : (
+              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
             <span className="text-sm text-gray-700">
               @{listing.profiles?.username || 'user'}
             </span>
-          </div>
+          </Link>
 
           {/* Location */}
           <div className="text-xs text-gray-500">

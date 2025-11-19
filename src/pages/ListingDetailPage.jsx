@@ -17,6 +17,12 @@ function ListingDetailPage() {
     fetchListing()
   }, [id])
 
+  useEffect(() => {
+    if (user && listing) {
+      checkIfFavorited()
+    }
+  }, [user, listing])
+
   const fetchListing = async () => {
     try {
       // Fetch listing with user profile info
@@ -24,7 +30,7 @@ function ListingDetailPage() {
         .from('listings')
         .select(`
           *,
-          profiles:user_id(username)
+          profiles:user_id(username, profile_picture_url)
         `)
         .eq('id', id)
         .single()
@@ -49,12 +55,55 @@ function ListingDetailPage() {
     }
   }
 
-  const handleFavoriteClick = () => {
+  const checkIfFavorited = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('listing_id', id)
+        .single()
+
+      if (data) {
+        setIsFavorited(true)
+      }
+    } catch (error) {
+      // No favorite found, keep as false
+    }
+  }
+
+  const handleFavoriteClick = async () => {
     if (!user) {
       navigate('/auth')
       return
     }
-    setIsFavorited(!isFavorited)
+
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('listing_id', id)
+
+        if (error) throw error
+        setIsFavorited(false)
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            listing_id: id,
+          })
+
+        if (error) throw error
+        setIsFavorited(true)
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    }
   }
 
   const handleMessageSeller = () => {
@@ -220,47 +269,74 @@ function ListingDetailPage() {
 
               {/* Action Buttons */}
               <div className="space-y-3 mb-6">
-                <button
-                  onClick={handleMakeOffer}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium"
-                >
-                  Make Offer
-                </button>
-                <button
-                  onClick={handleFavoriteClick}
-                  className={`w-full py-3 rounded-lg transition font-medium border-2 ${
-                    isFavorited
-                      ? 'bg-red-50 border-red-500 text-red-600 hover:bg-red-100'
-                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {isFavorited ? '❤️ Favorited' : '🤍 Add to Favorites'}
-                </button>
+                {user && listing.user_id === user.id ? (
+                  // Owner sees Edit Listing button
+                  <Link
+                    to="/dashboard/listings"
+                    className="w-full block bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium text-center"
+                  >
+                    Edit Listing
+                  </Link>
+                ) : (
+                  // Buyers see Make Offer and Favorite buttons
+                  <>
+                    <button
+                      onClick={handleMakeOffer}
+                      className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium"
+                    >
+                      Make Offer
+                    </button>
+                    <button
+                      onClick={handleFavoriteClick}
+                      className={`w-full py-3 rounded-lg transition font-medium border-2 ${
+                        isFavorited
+                          ? 'bg-red-50 border-red-500 text-red-600 hover:bg-red-100'
+                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {isFavorited ? '❤️ Favorited' : '🤍 Add to Favorites'}
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Seller Information */}
               <div className="border-t border-gray-200 pt-6 mb-6">
                 <h3 className="font-semibold text-gray-900 mb-3">Seller Information</h3>
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
+                <Link
+                  to={`/profile/${listing.profiles?.username || 'user'}`}
+                  className="flex items-center space-x-3 mb-4 hover:bg-gray-50 p-2 rounded-lg transition"
+                >
+                  {listing.profiles?.profile_picture_url ? (
+                    <img
+                      src={listing.profiles.profile_picture_url}
+                      alt={listing.profiles.username}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  )}
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-blue-600 hover:text-blue-700">
                       @{listing.profiles?.username || 'user'}
                     </div>
-                    <div className="text-sm text-gray-600">Member since 2024</div>
+                    <div className="text-sm text-gray-600">View seller profile</div>
                   </div>
-                </div>
+                </Link>
 
-                <button
-                  onClick={handleMessageSeller}
-                  className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-800 transition font-medium"
-                >
-                  Message Seller
-                </button>
+                {/* Only show Message Seller if not the owner */}
+                {(!user || listing.user_id !== user.id) && (
+                  <button
+                    onClick={handleMessageSeller}
+                    className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-800 transition font-medium"
+                  >
+                    Message Seller
+                  </button>
+                )}
               </div>
 
               {/* Specifications */}

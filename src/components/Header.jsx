@@ -1,13 +1,49 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 function Header() {
   const { user, signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [profilePicture, setProfilePicture] = useState(null)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
+
+  // Fetch user profile picture
+  useEffect(() => {
+    if (user) {
+      fetchProfilePicture()
+    } else {
+      setProfilePicture(null)
+    }
+
+    // Listen for profile updates
+    const handleProfileUpdate = () => {
+      if (user) {
+        fetchProfilePicture()
+      }
+    }
+
+    window.addEventListener('profileUpdated', handleProfileUpdate)
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate)
+  }, [user])
+
+  const fetchProfilePicture = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('profile_picture_url')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+      setProfilePicture(data?.profile_picture_url)
+    } catch (error) {
+      console.error('Error fetching profile picture:', error)
+    }
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -90,9 +126,19 @@ function Header() {
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  {profilePicture ? (
+                    <img
+                      src={profilePicture}
+                      alt={username}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  )}
                   <span className="font-medium">@{username}</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

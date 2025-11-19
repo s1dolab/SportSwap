@@ -38,7 +38,7 @@ function HomePage() {
         .select(`
           *,
           listing_images(image_url, display_order),
-          profiles:user_id(username)
+          profiles:user_id(username, profile_picture_url)
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false })

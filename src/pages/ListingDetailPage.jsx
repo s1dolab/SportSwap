@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import MakeOfferModal from '../components/MakeOfferModal'
 
 function ListingDetailPage() {
   const { id } = useParams()
@@ -12,6 +13,7 @@ function ListingDetailPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [isFavorited, setIsFavorited] = useState(false)
+  const [makeOfferModalOpen, setMakeOfferModalOpen] = useState(false)
 
   useEffect(() => {
     fetchListing()
@@ -62,13 +64,16 @@ function ListingDetailPage() {
         .select('id')
         .eq('user_id', user.id)
         .eq('listing_id', id)
-        .single()
+        .maybeSingle()
+
+      if (error) throw error
 
       if (data) {
         setIsFavorited(true)
       }
     } catch (error) {
       // No favorite found, keep as false
+      console.error('Error checking favorite:', error)
     }
   }
 
@@ -155,8 +160,12 @@ function ListingDetailPage() {
       navigate('/auth')
       return
     }
-    // For now, just show coming soon alert
-    alert('Make Offer feature coming soon!')
+    setMakeOfferModalOpen(true)
+  }
+
+  const handleOfferSubmitted = () => {
+    // Show success message
+    alert('Offer submitted successfully! The seller will be notified.')
   }
 
   if (loading) {
@@ -432,6 +441,16 @@ function ListingDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Make Offer Modal */}
+      {listing && (
+        <MakeOfferModal
+          listing={listing}
+          isOpen={makeOfferModalOpen}
+          onClose={() => setMakeOfferModalOpen(false)}
+          onOfferSubmitted={handleOfferSubmitted}
+        />
+      )}
     </div>
   )
 }

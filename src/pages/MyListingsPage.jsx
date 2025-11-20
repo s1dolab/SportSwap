@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import OffersPanel from '../components/OffersPanel'
 
 function MyListingsPage() {
   const { user } = useAuth()
@@ -285,6 +286,14 @@ function MyListingsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Offers Panel - Only show for active listings */}
+                {listing.status === 'active' && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Offers on this listing</h3>
+                    <OffersPanel listing={listing} onOfferAccepted={fetchListings} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

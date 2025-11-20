@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import Toast from './Toast'
 
 function Header() {
   const { user, signOut } = useAuth()
@@ -9,6 +10,7 @@ function Header() {
   const [searchQuery, setSearchQuery] = useState('')
   const [profilePicture, setProfilePicture] = useState(null)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [toast, setToast] = useState(null)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
 
@@ -109,6 +111,54 @@ function Header() {
         () => {
           // Refresh unread count on any message change
           fetchUnreadCount()
+        }
+      )
+      .subscribe()
+
+    return channel
+  }
+
+  // Subscribe to new offers on user's listings
+  useEffect(() => {
+    let channel
+
+    if (user) {
+      channel = subscribeToOffers()
+    }
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [user])
+
+  const subscribeToOffers = () => {
+    const channel = supabase
+      .channel(`offer-notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'offers',
+        },
+        async (payload) => {
+          // Check if this offer is for one of the user's listings
+          const { data: listing, error } = await supabase
+            .from('listings')
+            .select('id, title, user_id')
+            .eq('id', payload.new.listing_id)
+            .eq('user_id', user.id)
+            .single()
+
+          if (!error && listing) {
+            // Show toast notification
+            setToast({
+              message: `New offer received on "${listing.title}"!`,
+              type: 'success'
+            })
+          }
         }
       )
       .subscribe()
@@ -299,6 +349,16 @@ function Header() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={5000}
+        />
+      )}
     </header>
   )
 }

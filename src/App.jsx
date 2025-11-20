@@ -12,6 +12,7 @@ import PublicProfilePage from './pages/PublicProfilePage'
 import MessagesPage from './pages/MessagesPage'
 import DashboardLayout from './components/DashboardLayout'
 import MyListingsPage from './pages/MyListingsPage'
+import MyOffersPage from './pages/MyOffersPage'
 import OrderHistoryPage from './pages/OrderHistoryPage'
 import AccountSettingsPage from './pages/AccountSettingsPage'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -31,6 +32,7 @@ function App() {
             <Route path="/profile/:username" element={<PublicProfilePage />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route path="listings" element={<MyListingsPage />} />
+              <Route path="offers" element={<MyOffersPage />} />
               <Route path="history" element={<OrderHistoryPage />} />
               <Route path="settings" element={<AccountSettingsPage />} />
             </Route>

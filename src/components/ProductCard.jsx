@@ -23,13 +23,16 @@ function ProductCard({ listing, onFavoriteChange }) {
         .select('id')
         .eq('user_id', user.id)
         .eq('listing_id', listing.id)
-        .single()
+        .maybeSingle()
+
+      if (error) throw error
 
       if (data) {
         setIsFavorited(true)
       }
     } catch (error) {
       // No favorite found, keep as false
+      console.error('Error checking favorite:', error)
     }
   }
 

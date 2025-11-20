@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import Toast from './Toast'
+import ConfirmationModal from './ConfirmationModal'
 
 function OffersPanel({ listing, onOfferAccepted }) {
   const [offers, setOffers] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
+  const [showPreviousOffers, setShowPreviousOffers] = useState(false)
+  const [toast, setToast] = useState(null)
+  const [confirmingAction, setConfirmingAction] = useState(null)
 
   useEffect(() => {
     if (listing) {
@@ -86,10 +91,6 @@ function OffersPanel({ listing, onOfferAccepted }) {
   }
 
   const handleAccept = async (offer) => {
-    if (!confirm(`Accept offer of €${offer.amount.toFixed(2)} from @${offer.buyer_profile?.username}?`)) {
-      return
-    }
-
     try {
       setActionLoading(offer.id)
 
@@ -144,21 +145,15 @@ function OffersPanel({ listing, onOfferAccepted }) {
       if (onOfferAccepted) {
         onOfferAccepted(transaction)
       }
-
-      alert('Offer accepted! The listing has been marked as sold.')
     } catch (error) {
       console.error('Error accepting offer:', error)
-      alert('Failed to accept offer. Please try again.')
+      setToast({ message: 'Failed to accept offer. Please try again.', type: 'error' })
     } finally {
       setActionLoading(null)
     }
   }
 
   const handleDecline = async (offer) => {
-    if (!confirm(`Decline offer of €${offer.amount.toFixed(2)} from @${offer.buyer_profile?.username}?`)) {
-      return
-    }
-
     try {
       setActionLoading(offer.id)
 
@@ -172,7 +167,7 @@ function OffersPanel({ listing, onOfferAccepted }) {
       fetchOffers()
     } catch (error) {
       console.error('Error declining offer:', error)
-      alert('Failed to decline offer. Please try again.')
+      setToast({ message: 'Failed to decline offer. Please try again.', type: 'error' })
     } finally {
       setActionLoading(null)
     }
@@ -226,7 +221,17 @@ function OffersPanel({ listing, onOfferAccepted }) {
   }
 
   return (
-    <div className="space-y-3">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={5000}
+        />
+      )}
+
+      <div className="space-y-3">
       {/* Pending Offers */}
       {pendingOffers.length > 0 && (
         <div>
@@ -271,14 +276,14 @@ function OffersPanel({ listing, onOfferAccepted }) {
 
               <div className="flex space-x-2">
                 <button
-                  onClick={() => handleAccept(offer)}
+                  onClick={() => setConfirmingAction({ type: 'accept', offer })}
                   disabled={actionLoading === offer.id}
                   className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {actionLoading === offer.id ? 'Processing...' : 'Accept'}
                 </button>
                 <button
-                  onClick={() => handleDecline(offer)}
+                  onClick={() => setConfirmingAction({ type: 'decline', offer })}
                   disabled={actionLoading === offer.id}
                   className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -290,29 +295,69 @@ function OffersPanel({ listing, onOfferAccepted }) {
         </div>
       )}
 
-      {/* Other Offers */}
+      {/* Previous Offers (Collapsible) */}
       {otherOffers.length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">Previous Offers ({otherOffers.length})</h4>
-          {otherOffers.map((offer) => (
-            <div key={offer.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <p className="text-sm font-medium text-gray-900">@{offer.buyer_profile?.username}</p>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(offer.status)}`}>
-                    {offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
-                  </span>
+          <button
+            onClick={() => setShowPreviousOffers(!showPreviousOffers)}
+            className="w-full flex items-center justify-between text-sm font-semibold text-gray-700 hover:text-gray-900 transition py-2"
+          >
+            <span>{showPreviousOffers ? 'Hide' : 'Show'} {otherOffers.length} Previous Offer{otherOffers.length !== 1 ? 's' : ''}</span>
+            <svg
+              className={`w-4 h-4 transition-transform ${showPreviousOffers ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showPreviousOffers && (
+            <div className="space-y-2 mt-2">
+              {otherOffers.map((offer) => (
+                <div key={offer.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-sm font-medium text-gray-900">@{offer.buyer_profile?.username}</p>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(offer.status)}`}>
+                        {offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">{formatPrice(offer.amount)}</p>
+                      <p className="text-xs text-gray-500">{formatDate(offer.created_at)}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-gray-900">{formatPrice(offer.amount)}</p>
-                  <p className="text-xs text-gray-500">{formatDate(offer.created_at)}</p>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!confirmingAction}
+        onClose={() => setConfirmingAction(null)}
+        onConfirm={() => {
+          if (confirmingAction?.type === 'accept') {
+            handleAccept(confirmingAction.offer)
+          } else if (confirmingAction?.type === 'decline') {
+            handleDecline(confirmingAction.offer)
+          }
+        }}
+        title={confirmingAction?.type === 'accept' ? 'Accept Offer' : 'Decline Offer'}
+        message={
+          confirmingAction?.type === 'accept'
+            ? `Are you sure you want to accept this offer of €${confirmingAction?.offer?.amount.toFixed(2)} from @${confirmingAction?.offer?.buyer_profile?.username}? This action is irreversible and will mark the listing as sold.`
+            : `Are you sure you want to decline this offer of €${confirmingAction?.offer?.amount.toFixed(2)} from @${confirmingAction?.offer?.buyer_profile?.username}?`
+        }
+        confirmText={confirmingAction?.type === 'accept' ? 'Accept Offer' : 'Decline Offer'}
+        isDangerous={confirmingAction?.type === 'decline'}
+      />
+    </>
   )
 }
 

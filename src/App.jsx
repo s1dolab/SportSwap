@@ -27,6 +27,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/browse" element={<BrowsePage />} />
             <Route path="/listings/new" element={<ProtectedRoute><CreateListingPage /></ProtectedRoute>} />
+            <Route path="/listings/:id/edit" element={<ProtectedRoute><CreateListingPage /></ProtectedRoute>} />
             <Route path="/listings/:id" element={<ListingDetailPage />} />
             <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
             <Route path="/profile/:username" element={<PublicProfilePage />} />

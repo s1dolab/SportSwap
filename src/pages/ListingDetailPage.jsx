@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import MakeOfferModal from '../components/MakeOfferModal'
+import Toast from '../components/Toast'
 
 function ListingDetailPage() {
   const { id } = useParams()
@@ -14,6 +15,7 @@ function ListingDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isFavorited, setIsFavorited] = useState(false)
   const [makeOfferModalOpen, setMakeOfferModalOpen] = useState(false)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     fetchListing()
@@ -151,7 +153,7 @@ function ListingDetailPage() {
       }
     } catch (error) {
       console.error('Error creating/finding conversation:', error)
-      alert('Failed to start conversation. Please try again.')
+      setToast({ message: 'Failed to start conversation. Please try again.', type: 'error' })
     }
   }
 
@@ -165,7 +167,7 @@ function ListingDetailPage() {
 
   const handleOfferSubmitted = () => {
     // Show success message
-    alert('Offer submitted successfully! The seller will be notified.')
+    setToast({ message: 'Offer submitted successfully! The seller will be notified.', type: 'success' })
   }
 
   if (loading) {
@@ -212,8 +214,18 @@ function ListingDetailPage() {
     : null
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
-      <div className="container mx-auto px-4">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={3000}
+        />
+      )}
+
+      <div className="bg-gray-50 min-h-screen py-8">
+        <div className="container mx-auto px-4">
         {/* Breadcrumbs */}
         <div className="text-sm text-gray-600 mb-6">
           <Link to="/" className="hover:text-blue-600">Home</Link>
@@ -452,6 +464,7 @@ function ListingDetailPage() {
         />
       )}
     </div>
+    </>
   )
 }
 

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import OffersPanel from '../components/OffersPanel'
+import Toast from '../components/Toast'
+import ConfirmationModal from '../components/ConfirmationModal'
 
 function MyListingsPage() {
   const { user } = useAuth()
@@ -10,6 +12,8 @@ function MyListingsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('active') // 'active', 'sold', 'draft'
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [confirmingSold, setConfirmingSold] = useState(null)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     if (user) {
@@ -32,10 +36,29 @@ function MyListingsPage() {
 
       if (error) throw error
 
-      // Format listings with images
+      // Get listing IDs for sold items to fetch buyer info
+      const soldListingIds = data.filter(l => l.status === 'sold').map(l => l.id)
+
+      // Fetch transactions for sold items
+      let buyersMap = {}
+      if (soldListingIds.length > 0) {
+        const { data: transactionsData } = await supabase
+          .from('transactions')
+          .select('listing_id, buyer_id, profiles!transactions_buyer_id_fkey(id, username)')
+          .in('listing_id', soldListingIds)
+
+        if (transactionsData) {
+          transactionsData.forEach(transaction => {
+            buyersMap[transaction.listing_id] = transaction.profiles
+          })
+        }
+      }
+
+      // Format listings with images and buyer info
       const formattedListings = data.map((listing) => ({
         ...listing,
         images: listing.listing_images.sort((a, b) => a.display_order - b.display_order),
+        buyer_profile: buyersMap[listing.id] || null,
       }))
 
       setListings(formattedListings)
@@ -59,9 +82,10 @@ function MyListingsPage() {
       setListings(listings.map(listing =>
         listing.id === listingId ? { ...listing, status: newStatus } : listing
       ))
+      setToast({ message: 'Listing status updated successfully', type: 'success' })
     } catch (error) {
       console.error('Error updating listing status:', error)
-      alert('Failed to update listing status')
+      setToast({ message: 'Failed to update listing status', type: 'error' })
     }
   }
 
@@ -77,9 +101,10 @@ function MyListingsPage() {
       // Remove from local state
       setListings(listings.filter(listing => listing.id !== listingId))
       setDeleteConfirm(null)
+      setToast({ message: 'Listing deleted successfully', type: 'success' })
     } catch (error) {
       console.error('Error deleting listing:', error)
-      alert('Failed to delete listing')
+      setToast({ message: 'Failed to delete listing', type: 'error' })
     }
   }
 
@@ -103,9 +128,19 @@ function MyListingsPage() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={3000}
+        />
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">My Listings</h1>
           <Link
@@ -232,6 +267,17 @@ function MyListingsPage() {
                     <div className="text-sm text-gray-500 mt-1">
                       Posted {new Date(listing.created_at).toLocaleDateString()}
                     </div>
+                    {listing.status === 'sold' && listing.buyer_profile && (
+                      <div className="text-sm text-gray-600 mt-1">
+                        Buyer:{' '}
+                        <Link
+                          to={`/profile/${listing.buyer_profile.username}`}
+                          className="font-medium text-blue-600 hover:text-blue-700"
+                        >
+                          @{listing.buyer_profile.username}
+                        </Link>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -261,7 +307,7 @@ function MyListingsPage() {
                     <div>
                       {activeTab === 'active' && (
                         <button
-                          onClick={() => handleStatusChange(listing.id, 'sold')}
+                          onClick={() => setConfirmingSold(listing.id)}
                           className="text-sm px-3 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100 transition"
                         >
                           Mark as Sold
@@ -301,31 +347,31 @@ function MyListingsPage() {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Listing</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this listing? This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => handleDelete(deleteConfirm)}
+        title="Delete Listing"
+        message="Are you sure you want to delete this listing? This action cannot be undone."
+        confirmText="Yes, Delete"
+        isDangerous={true}
+      />
+
+      {/* Mark as Sold Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!confirmingSold}
+        onClose={() => setConfirmingSold(null)}
+        onConfirm={() => {
+          handleStatusChange(confirmingSold, 'sold')
+          setConfirmingSold(null)
+        }}
+        title="Mark as Sold"
+        message="Are you sure you want to mark this listing as sold? You can reactivate it later if needed."
+        confirmText="Mark as Sold"
+        isDangerous={false}
+      />
     </div>
+    </>
   )
 }
 

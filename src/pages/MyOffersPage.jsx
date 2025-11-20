@@ -2,12 +2,18 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import Toast from '../components/Toast'
+import ConfirmationModal from '../components/ConfirmationModal'
 
 function MyOffersPage() {
   const { user } = useAuth()
   const [offers, setOffers] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('pending') // 'pending', 'accepted', 'all'
+  const [toast, setToast] = useState(null)
+  const [withdrawingOfferId, setWithdrawingOfferId] = useState(null)
+  const [viewingMessage, setViewingMessage] = useState(null)
+  const [confirmingWithdraw, setConfirmingWithdraw] = useState(null)
 
   useEffect(() => {
     if (user) {
@@ -115,11 +121,8 @@ function MyOffersPage() {
   }
 
   const handleWithdraw = async (offerId) => {
-    if (!confirm('Withdraw this offer?')) {
-      return
-    }
-
     try {
+      setWithdrawingOfferId(offerId)
       const { error } = await supabase
         .from('offers')
         .update({ status: 'withdrawn' })
@@ -127,10 +130,13 @@ function MyOffersPage() {
 
       if (error) throw error
 
+      setToast({ message: 'Offer withdrawn successfully', type: 'success' })
       fetchOffers()
     } catch (error) {
       console.error('Error withdrawing offer:', error)
-      alert('Failed to withdraw offer. Please try again.')
+      setToast({ message: 'Failed to withdraw offer. Please try again.', type: 'error' })
+    } finally {
+      setWithdrawingOfferId(null)
     }
   }
 
@@ -182,9 +188,19 @@ function MyOffersPage() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={3000}
+        />
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
         <h1 className="text-2xl font-bold text-gray-900">My Offers</h1>
         <p className="text-gray-600 mt-1">Track offers you've made on listings</p>
       </div>
@@ -267,8 +283,8 @@ function MyOffersPage() {
                   key={offer.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
                 >
-                  {/* Safety check: Skip if listing is missing/deleted */}
-                  {!offer.listing ? (
+                  {/* Safety check: Skip if listing is missing/deleted (but always show for accepted offers) */}
+                  {!offer.listing && offer.status !== 'accepted' ? (
                     <div className="p-4 text-center text-gray-500">
                       <p className="text-sm">Listing no longer available</p>
                       <p className="text-xs mt-1">
@@ -278,33 +294,48 @@ function MyOffersPage() {
                   ) : (
                     <div className="flex gap-4">
                       {/* Image */}
-                      <Link
-                        to={`/listings/${offer.listing.id}`}
-                        className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden"
-                      >
-                        {offer.listing_image ? (
-                          <img
-                            src={offer.listing_image}
-                            alt={offer.listing.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            No image
-                          </div>
-                        )}
-                      </Link>
+                      {offer.listing ? (
+                        <Link
+                          to={`/listings/${offer.listing.id}`}
+                          className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden"
+                        >
+                          {offer.listing_image ? (
+                            <img
+                              src={offer.listing_image}
+                              alt={offer.listing.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              No image
+                            </div>
+                          )}
+                        </Link>
+                      ) : (
+                        <div className="flex-shrink-0 w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
 
                       {/* Info */}
-                      <div className="flex-grow">
+                      <div className="flex-grow flex flex-col justify-between">
+                        {/* Top Group: Title, Status, Price */}
                         <div className="flex justify-between items-start">
                           <div>
-                            <Link
-                              to={`/listings/${offer.listing.id}`}
-                              className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition"
-                            >
-                              {offer.listing.title}
-                            </Link>
+                            {offer.listing ? (
+                              <Link
+                                to={`/listings/${offer.listing.id}`}
+                                className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition"
+                              >
+                                {offer.listing.title}
+                              </Link>
+                            ) : (
+                              <p className="text-lg font-semibold text-gray-500">
+                                [Listing Deleted]
+                              </p>
+                            )}
                           <div className="flex items-center space-x-2 mt-1">
                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusBadge.class}`}>
                               {statusBadge.text}
@@ -315,58 +346,68 @@ function MyOffersPage() {
                               </span>
                             )}
                           </div>
-                        </div>
-                      </div>
 
-                        <div className="text-right">
+                          {offer.seller_profile?.username && (
+                            <div className="mt-1 text-sm text-gray-600">
+                              Seller:
+                              <Link
+                                to={`/profile/${offer.seller_profile.username}`}
+                                className="ml-1 font-medium text-blue-600 hover:text-blue-700"
+                              >
+                                @{offer.seller_profile.username}
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-right mt-2">
                           <div className="text-sm text-gray-600">Your Offer</div>
                           <div className="text-2xl font-bold text-gray-900">{formatPrice(offer.amount)}</div>
-                          <div className="text-sm text-gray-500">
-                            Asking: {formatPrice(offer.listing?.price)}
-                          </div>
+                          {offer.listing?.price && (
+                            <div className="text-sm text-gray-500">
+                              Asking: {formatPrice(offer.listing.price)}
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="mt-2 text-sm text-gray-600">
-                        Seller:
-                        <Link
-                          to={`/profile/${offer.seller_profile?.username}`}
-                          className="ml-1 font-medium text-blue-600 hover:text-blue-700"
-                        >
-                          @{offer.seller_profile?.username}
-                        </Link>
-                      </div>
-
-                      {offer.message && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700 italic">
-                          "{offer.message}"
-                        </div>
-                      )}
-
-                      <div className="mt-2 flex justify-between items-center">
+                      {/* Bottom Group: Footer Actions */}
+                      <div className="mt-3 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
                         <div className="text-xs text-gray-500">
                           Submitted {formatDate(offer.created_at)}
                         </div>
 
-                        {offer.status === 'pending' && (
-                          <button
-                            onClick={() => handleWithdraw(offer.id)}
-                            className="text-sm text-red-600 hover:text-red-700 font-medium"
-                          >
-                            Withdraw Offer
-                          </button>
-                        )}
+                        <div className="flex items-center gap-3">
+                          {offer.message && (
+                            <button
+                              onClick={() => setViewingMessage(offer.message)}
+                              className="text-sm text-gray-600 hover:text-gray-900 font-medium flex-shrink-0"
+                            >
+                              View Message
+                            </button>
+                          )}
 
-                        {offer.status === 'accepted' && (
-                          <Link
-                            to="/messages"
-                            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                          >
-                            Contact Seller →
-                          </Link>
-                        )}
+                          {offer.status === 'pending' && (
+                            <button
+                              onClick={() => setConfirmingWithdraw(offer.id)}
+                              className="text-sm text-red-600 hover:text-red-700 font-medium flex-shrink-0"
+                            >
+                              Withdraw Offer
+                            </button>
+                          )}
+
+                          {offer.status === 'accepted' && (
+                            <Link
+                              to="/messages"
+                              className="text-sm text-blue-600 hover:text-blue-700 font-medium flex-shrink-0"
+                            >
+                              Contact Seller →
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  </div>
                   )}
                 </div>
               )
@@ -375,6 +416,48 @@ function MyOffersPage() {
         )}
       </div>
     </div>
+
+      {/* Message Viewing Modal */}
+      {viewingMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Offer Message</h3>
+              <button
+                onClick={() => setViewingMessage(null)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-gray-700 whitespace-pre-wrap">{viewingMessage}</p>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setViewingMessage(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!confirmingWithdraw}
+        onClose={() => setConfirmingWithdraw(null)}
+        onConfirm={() => handleWithdraw(confirmingWithdraw)}
+        title="Withdraw Offer"
+        message="Are you sure you want to withdraw this offer? This action cannot be undone."
+        confirmText="Withdraw Offer"
+        isDangerous={true}
+      />
+    </>
   )
 }
 

@@ -1,11 +1,13 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
 function CreateListingPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { id: listingId } = useParams()
+  const isEditMode = !!listingId
 
   // Form state
   const [title, setTitle] = useState('')
@@ -20,7 +22,10 @@ function CreateListingPage() {
   const [quantity, setQuantity] = useState(1)
   const [city, setCity] = useState('')
   const [photos, setPhotos] = useState([])
+  const [existingImages, setExistingImages] = useState([])
+  const [imagesToDelete, setImagesToDelete] = useState([])
   const [loading, setLoading] = useState(false)
+  const [fetchingListing, setFetchingListing] = useState(false)
   const [error, setError] = useState('')
 
   // Categories and subcategories
@@ -32,6 +37,61 @@ function CreateListingPage() {
     volleyball: ['Balls', 'Nets', 'Knee Pads', 'Shoes'],
   }
 
+  // Fetch listing data if in edit mode
+  useEffect(() => {
+    if (isEditMode && user) {
+      fetchListingData()
+    }
+  }, [listingId, user])
+
+  const fetchListingData = async () => {
+    try {
+      setFetchingListing(true)
+      setError('')
+
+      // Fetch listing with images
+      const { data: listing, error: listingError } = await supabase
+        .from('listings')
+        .select(`
+          *,
+          listing_images(id, image_url, display_order)
+        `)
+        .eq('id', listingId)
+        .single()
+
+      if (listingError) throw listingError
+
+      // Check if user owns this listing
+      if (listing.user_id !== user.id) {
+        setError('You do not have permission to edit this listing')
+        navigate('/dashboard/listings')
+        return
+      }
+
+      // Pre-fill form with existing data
+      setTitle(listing.title || '')
+      setCategory(listing.category || '')
+      setSubcategory(listing.subcategory || '')
+      setListingType(listing.listing_type || 'sale')
+      setDescription(listing.description || '')
+      setCondition(listing.condition || 'good')
+      setBrand(listing.brand || '')
+      setPrice(listing.price?.toString() || '')
+      setRetailPrice(listing.retail_price?.toString() || '')
+      setQuantity(listing.quantity || 1)
+      setCity(listing.city || '')
+
+      // Sort images by display_order and set existing images
+      const sortedImages = (listing.listing_images || []).sort((a, b) => a.display_order - b.display_order)
+      setExistingImages(sortedImages)
+    } catch (error) {
+      console.error('Error fetching listing:', error)
+      setError('Failed to load listing data')
+    } finally {
+      setFetchingListing(false)
+    }
+  }
+
   const handleCategoryChange = (e) => {
     setCategory(e.target.value)
     setSubcategory('') // Reset subcategory when category changes
@@ -40,8 +100,9 @@ function CreateListingPage() {
   const handlePhotoChange = (e) => {
     const files = Array.from(e.target.files)
 
-    // Limit to 5 photos
-    if (photos.length + files.length > 5) {
+    // Limit to 5 photos total (existing + new)
+    const totalPhotos = existingImages.length - imagesToDelete.length + photos.length + files.length
+    if (totalPhotos > 5) {
       setError('Maximum 5 photos allowed')
       return
     }
@@ -63,6 +124,10 @@ function CreateListingPage() {
     setPhotos(newPhotos)
   }
 
+  const removeExistingImage = (imageId) => {
+    setImagesToDelete([...imagesToDelete, imageId])
+  }
+
   const handleSubmit = async (e, isDraft = false) => {
     e.preventDefault()
     setError('')
@@ -76,7 +141,9 @@ function CreateListingPage() {
         return
       }
 
-      if (photos.length === 0) {
+      // Check if we have at least one photo (existing or new)
+      const remainingExistingImages = existingImages.length - imagesToDelete.length
+      if (remainingExistingImages + photos.length === 0) {
         setError('Please add at least one photo')
         setLoading(false)
         return
@@ -88,75 +155,127 @@ function CreateListingPage() {
         return
       }
 
-      // 1. Create listing in database
-      const { data: listing, error: listingError } = await supabase
-        .from('listings')
-        .insert({
-          user_id: user.id,
-          title,
-          description,
-          category,
-          subcategory,
-          listing_type: listingType,
-          condition,
-          brand,
-          price: parseFloat(price),
-          retail_price: retailPrice ? parseFloat(retailPrice) : null,
-          quantity: parseInt(quantity),
-          city,
-          status: isDraft ? 'draft' : 'active',
-        })
-        .select()
-        .single()
+      let targetListingId = listingId
 
-      if (listingError) throw listingError
+      // 1. Create or Update listing in database
+      if (isEditMode) {
+        // UPDATE existing listing
+        const { error: updateError } = await supabase
+          .from('listings')
+          .update({
+            title,
+            description,
+            category,
+            subcategory,
+            listing_type: listingType,
+            condition,
+            brand,
+            price: parseFloat(price),
+            retail_price: retailPrice ? parseFloat(retailPrice) : null,
+            quantity: parseInt(quantity),
+            city,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', listingId)
 
-      // 2. Upload photos to storage
-      const uploadedImages = []
-      for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i]
-        const fileExt = photo.file.name.split('.').pop()
-        const fileName = `${listing.id}/${Date.now()}-${i}.${fileExt}`
+        if (updateError) throw updateError
+      } else {
+        // INSERT new listing
+        const { data: listing, error: listingError } = await supabase
+          .from('listings')
+          .insert({
+            user_id: user.id,
+            title,
+            description,
+            category,
+            subcategory,
+            listing_type: listingType,
+            condition,
+            brand,
+            price: parseFloat(price),
+            retail_price: retailPrice ? parseFloat(retailPrice) : null,
+            quantity: parseInt(quantity),
+            city,
+            status: isDraft ? 'draft' : 'active',
+          })
+          .select()
+          .single()
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('listing-images')
-          .upload(fileName, photo.file)
-
-        if (uploadError) throw uploadError
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('listing-images')
-          .getPublicUrl(fileName)
-
-        uploadedImages.push({
-          listing_id: listing.id,
-          image_url: urlData.publicUrl,
-          display_order: i,
-        })
+        if (listingError) throw listingError
+        targetListingId = listing.id
       }
 
-      // 3. Save image URLs to database
-      const { error: imagesError } = await supabase
-        .from('listing_images')
-        .insert(uploadedImages)
+      // 2. Delete marked images if in edit mode
+      if (isEditMode && imagesToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('listing_images')
+          .delete()
+          .in('id', imagesToDelete)
 
-      if (imagesError) throw imagesError
+        if (deleteError) throw deleteError
+      }
+
+      // 3. Upload new photos to storage
+      if (photos.length > 0) {
+        const uploadedImages = []
+        const startingIndex = remainingExistingImages
+
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i]
+          const fileExt = photo.file.name.split('.').pop()
+          const fileName = `${targetListingId}/${Date.now()}-${i}.${fileExt}`
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('listing-images')
+            .upload(fileName, photo.file)
+
+          if (uploadError) throw uploadError
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('listing-images')
+            .getPublicUrl(fileName)
+
+          uploadedImages.push({
+            listing_id: targetListingId,
+            image_url: urlData.publicUrl,
+            display_order: startingIndex + i,
+          })
+        }
+
+        // 4. Save new image URLs to database
+        const { error: imagesError } = await supabase
+          .from('listing_images')
+          .insert(uploadedImages)
+
+        if (imagesError) throw imagesError
+      }
 
       // Success! Navigate to the listing
-      navigate(`/listings/${listing.id}`)
+      navigate(`/listings/${targetListingId}`)
     } catch (err) {
-      console.error('Error creating listing:', err)
-      setError(err.message || 'Failed to create listing')
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} listing:`, err)
+      setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} listing`)
     } finally {
       setLoading(false)
     }
   }
 
+  if (fetchingListing) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 mt-4">Loading listing...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-3xl">
-        <h1 className="text-3xl font-bold mb-8">Create New Listing</h1>
+        <h1 className="text-3xl font-bold mb-8">{isEditMode ? 'Edit Listing' : 'Create New Listing'}</h1>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
@@ -347,30 +466,61 @@ function CreateListingPage() {
               </label>
             </div>
 
-            {/* Photo Previews */}
-            {photos.length > 0 && (
+            {/* Photo Previews - Existing and New */}
+            {(existingImages.length > 0 || photos.length > 0) && (
               <div className="grid grid-cols-5 gap-4 mt-4">
-                {photos.map((photo, index) => (
-                  <div key={index} className="relative aspect-square">
-                    <img
-                      src={photo.preview}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(index)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                    >
-                      ×
-                    </button>
-                    {index === 0 && (
-                      <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                        Cover
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {/* Existing Images */}
+                {existingImages.map((image, index) => {
+                  if (imagesToDelete.includes(image.id)) return null
+
+                  return (
+                    <div key={`existing-${image.id}`} className="relative aspect-square">
+                      <img
+                        src={image.image_url}
+                        alt={`Existing ${index + 1}`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(image.id)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                          Cover
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* New Photos */}
+                {photos.map((photo, index) => {
+                  const displayIndex = existingImages.length - imagesToDelete.length + index
+                  return (
+                    <div key={`new-${index}`} className="relative aspect-square">
+                      <img
+                        src={photo.preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                      {displayIndex === 0 && (
+                        <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                          Cover
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -475,16 +625,18 @@ function CreateListingPage() {
               disabled={loading}
               className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:bg-blue-300 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Publishing...' : 'Post Listing'}
+              {loading ? (isEditMode ? 'Updating...' : 'Publishing...') : (isEditMode ? 'Update Listing' : 'Post Listing')}
             </button>
-            <button
-              type="button"
-              onClick={(e) => handleSubmit(e, true)}
-              disabled={loading}
-              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition disabled:bg-gray-100 disabled:cursor-not-allowed font-medium"
-            >
-              Save as Draft
-            </button>
+            {!isEditMode && (
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, true)}
+                disabled={loading}
+                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition disabled:bg-gray-100 disabled:cursor-not-allowed font-medium"
+              >
+                Save as Draft
+              </button>
+            )}
           </div>
         </form>
       </div>

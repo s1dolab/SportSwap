@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import Toast from './Toast'
 
 function ConversationView({ conversation, onMessageSent }) {
   const { user } = useAuth()
@@ -9,6 +10,7 @@ function ConversationView({ conversation, onMessageSent }) {
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
   const messagesContainerRef = useRef(null)
 
   useEffect(() => {
@@ -219,7 +221,7 @@ function ConversationView({ conversation, onMessageSent }) {
       }
     } catch (error) {
       console.error('Error sending message:', error)
-      alert('Failed to send message. Please try again.')
+      setToast({ message: 'Failed to send message. Please try again.', type: 'error' })
 
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== tempId))
@@ -249,31 +251,47 @@ function ConversationView({ conversation, onMessageSent }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with listing info */}
-      <div className="p-4 border-b border-gray-200">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={3000}
+        />
+      )}
+
+      <div className="flex flex-col h-full">
+        {/* Header with listing info */}
+        <div className="p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           {/* Listing thumbnail */}
           {conversation.listing?.listing_images?.[0]?.image_url && (
-            <Link to={`/listings/${conversation.listing.id}`}>
+            <Link to={`/listings/${conversation.listing?.id}`}>
               <img
                 src={conversation.listing.listing_images[0].image_url}
-                alt={conversation.listing.title}
+                alt={conversation.listing?.title || 'Listing'}
                 className="w-12 h-12 object-cover rounded border border-gray-200"
               />
             </Link>
           )}
 
           <div className="flex-grow min-w-0">
-            <Link
-              to={`/listings/${conversation.listing.id}`}
-              className="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate block"
-            >
-              {conversation.listing?.title}
-            </Link>
-            <p className="text-sm text-gray-600">
-              {formatPrice(conversation.listing?.price)}
-            </p>
+            {conversation.listing ? (
+              <>
+                <Link
+                  to={`/listings/${conversation.listing.id}`}
+                  className="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate block"
+                >
+                  {conversation.listing.title}
+                </Link>
+                <p className="text-sm text-gray-600">
+                  {formatPrice(conversation.listing.price)}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm font-semibold text-gray-500">Listing Unavailable</p>
+            )}
           </div>
 
           {/* Other user profile link */}
@@ -399,6 +417,7 @@ function ConversationView({ conversation, onMessageSent }) {
         </div>
       </form>
     </div>
+    </>
   )
 }
 

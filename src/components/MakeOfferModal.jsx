@@ -66,15 +66,15 @@ function MakeOfferModal({ listing, isOpen, onClose, onOfferSubmitted }) {
 
       if (insertError) throw insertError
 
-      // Success
-      if (onOfferSubmitted) {
-        onOfferSubmitted(data)
-      }
-
-      // Reset form and close
+      // Success - reset form and close immediately
       setOfferAmount('')
       setMessage('')
       onClose()
+
+      // Notify parent after closing (parent will show toast)
+      if (onOfferSubmitted) {
+        onOfferSubmitted(data)
+      }
     } catch (error) {
       console.error('Error submitting offer:', error)
       setError('Failed to submit offer. Please try again.')

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import ProductCard from '../components/ProductCard'
+import Toast from '../components/Toast'
 
 function PublicProfilePage() {
   const { username } = useParams()
@@ -13,6 +14,7 @@ function PublicProfilePage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('available') // 'available' or 'sold'
   const [notFound, setNotFound] = useState(false)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     fetchProfile()
@@ -82,7 +84,7 @@ function PublicProfilePage() {
 
     // Check if there are any active listings to message about
     if (availableListings.length === 0) {
-      alert('This user has no active listings to message about.')
+      setToast({ message: 'This user has no active listings to message about.', type: 'info' })
       return
     }
 
@@ -123,7 +125,7 @@ function PublicProfilePage() {
       }
     } catch (error) {
       console.error('Error creating/finding conversation:', error)
-      alert('Failed to start conversation. Please try again.')
+      setToast({ message: 'Failed to start conversation. Please try again.', type: 'error' })
     }
   }
 
@@ -178,8 +180,18 @@ function PublicProfilePage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
-      <div className="container mx-auto px-4">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={3000}
+        />
+      )}
+
+      <div className="bg-gray-50 min-h-screen py-8">
+        <div className="container mx-auto px-4">
         {/* Cover Photo */}
         <div className="w-full aspect-[3/1] bg-gradient-to-r from-blue-600 to-blue-800 overflow-hidden rounded-xl mb-6">
           {profile.cover_photo_url && (
@@ -221,7 +233,7 @@ function PublicProfilePage() {
               )}
 
               {/* Stats */}
-              <div className="flex flex-wrap gap-6 mt-4">
+              <div className="flex flex-wrap gap-6 mt-4 items-baseline">
                 <div>
                   <span className="text-2xl font-bold text-gray-900">{availableListings.length}</span>
                   <span className="text-gray-600 ml-2">Active Listings</span>
@@ -349,6 +361,7 @@ function PublicProfilePage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

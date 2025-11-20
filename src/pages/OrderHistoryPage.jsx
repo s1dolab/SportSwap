@@ -81,10 +81,14 @@ function OrderHistoryPage() {
   }
 
   const formatPrice = (price) => {
+    const numPrice = Number(price)
+    if (isNaN(numPrice) || numPrice === 0) {
+      return '€—'
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'EUR',
-    }).format(price)
+    }).format(numPrice)
   }
 
   const formatDate = (dateString) => {
@@ -227,7 +231,7 @@ function OrderHistoryPage() {
                           {transaction.listings.title}
                         </Link>
                         <div className="text-xl font-bold text-gray-900 mt-1">
-                          {formatPrice(transaction.amount)}
+                          {formatPrice(transaction.amount || transaction.listings?.price)}
                         </div>
                         <div className="mt-2 flex items-center gap-4 text-sm text-gray-600">
                           <span>{formatDate(transaction.created_at)}</span>

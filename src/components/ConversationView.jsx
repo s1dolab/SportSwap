@@ -120,6 +120,11 @@ function ConversationView({ conversation, onMessageSent }) {
           filter: `conversation_id=eq.${conversation.id}`,
         },
         async (payload) => {
+          // Skip if this message was sent by the current user (it's handled optimistically)
+          if (payload.new.sender_id === user.id) {
+            return
+          }
+
           // Fetch the new message
           const { data: messageData, error: messageError } = await supabase
             .from('messages')
@@ -129,30 +134,42 @@ function ConversationView({ conversation, onMessageSent }) {
 
           if (messageError || !messageData) return
 
-          // Fetch sender profile
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, username, profile_picture_url')
-            .eq('id', messageData.sender_id)
-            .single()
+          // Check for duplicates before adding
+          setMessages(prev => {
+            const isDuplicate = prev.some(msg => msg.id === messageData.id)
+            if (isDuplicate) return prev
 
-          if (!profileError && profileData) {
-            const messageWithProfile = {
-              ...messageData,
-              sender: { id: messageData.sender_id },
-              sender_profile: profileData
-            }
+            // Fetch sender profile and add message
+            supabase
+              .from('profiles')
+              .select('id, username, profile_picture_url')
+              .eq('id', messageData.sender_id)
+              .single()
+              .then(({ data: profileData, error: profileError }) => {
+                if (!profileError && profileData) {
+                  const messageWithProfile = {
+                    ...messageData,
+                    sender: { id: messageData.sender_id },
+                    sender_profile: profileData
+                  }
 
-            setMessages(prev => [...prev, messageWithProfile])
+                  setMessages(current => {
+                    // Double-check for duplicates
+                    const stillDuplicate = current.some(msg => msg.id === messageData.id)
+                    if (stillDuplicate) return current
+                    return [...current, messageWithProfile]
+                  })
 
-            // Mark as read if not sent by current user
-            if (messageData.sender_id !== user.id) {
-              await supabase
-                .from('messages')
-                .update({ read_at: new Date().toISOString() })
-                .eq('id', messageData.id)
-            }
-          }
+                  // Mark as read since it's from the other user
+                  supabase
+                    .from('messages')
+                    .update({ read_at: new Date().toISOString() })
+                    .eq('id', messageData.id)
+                }
+              })
+
+            return prev
+          })
         }
       )
       .subscribe()

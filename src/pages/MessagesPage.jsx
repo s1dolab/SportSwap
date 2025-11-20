@@ -278,7 +278,7 @@ function MessagesPage() {
                         <img
                           src={conversation.otherUser.profile_picture_url}
                           alt={conversation.otherUser.username}
-                          className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                          className="w-12 h-12 aspect-square rounded-full object-cover border-2 border-gray-200"
                         />
                       ) : (
                         <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
@@ -331,7 +331,7 @@ function MessagesPage() {
               {selectedConversation ? (
                 <ConversationView
                   conversation={selectedConversation}
-                  onMessageSent={fetchConversations}
+                  onMessageSent={() => fetchConversations({ silent: true, allowAutoSelect: false })}
                 />
               ) : (
                 <div className="flex-grow flex items-center justify-center p-8">

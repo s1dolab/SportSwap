@@ -3,15 +3,18 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import Toast from './Toast'
+import { Heart, MessageSquare, ChevronDown, User, Search } from 'lucide-react'
 
 function Header() {
   const { user, signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [profilePicture, setProfilePicture] = useState(null)
   const [unreadCount, setUnreadCount] = useState(0)
   const [toast, setToast] = useState(null)
   const dropdownRef = useRef(null)
+  const megaMenuRef = useRef(null)
   const navigate = useNavigate()
 
   // Fetch user profile picture
@@ -22,7 +25,6 @@ function Header() {
       setProfilePicture(null)
     }
 
-    // Listen for profile updates
     const handleProfileUpdate = () => {
       if (user) {
         fetchProfilePicture()
@@ -68,7 +70,6 @@ function Header() {
 
   const fetchUnreadCount = async () => {
     try {
-      // Get all conversations where user is buyer or seller
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id')
@@ -83,7 +84,6 @@ function Header() {
 
       const conversationIds = conversations.map(c => c.id)
 
-      // Count unread messages in those conversations
       const { count, error: countError } = await supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
@@ -109,7 +109,6 @@ function Header() {
           table: 'messages',
         },
         () => {
-          // Refresh unread count on any message change
           fetchUnreadCount()
         }
       )
@@ -118,7 +117,7 @@ function Header() {
     return channel
   }
 
-  // Subscribe to new offers on user's listings
+  // Subscribe to new offers
   useEffect(() => {
     let channel
 
@@ -144,7 +143,6 @@ function Header() {
           table: 'offers',
         },
         async (payload) => {
-          // Check if this offer is for one of the user's listings
           const { data: listing, error } = await supabase
             .from('listings')
             .select('id, title, user_id')
@@ -153,7 +151,6 @@ function Header() {
             .single()
 
           if (!error && listing) {
-            // Show toast notification
             setToast({
               message: `New offer received on "${listing.title}"!`,
               type: 'success'
@@ -171,6 +168,9 @@ function Header() {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false)
+      }
+      if (megaMenuRef.current && !megaMenuRef.current.contains(event.target)) {
+        setMegaMenuOpen(false)
       }
     }
 
@@ -198,40 +198,59 @@ function Header() {
 
   const username = user?.user_metadata?.username || 'User'
 
+  const categories = [
+    { name: 'Basketball', slug: 'basketball', subcategories: ['Shoes', 'Jerseys', 'Balls', 'Accessories'] },
+    { name: 'Soccer', slug: 'soccer', subcategories: ['Cleats', 'Jerseys', 'Balls', 'Shin Guards'] },
+    { name: 'Swimming', slug: 'swimming', subcategories: ['Goggles', 'Swimsuits', 'Caps', 'Accessories'] },
+    { name: 'Tennis', slug: 'tennis', subcategories: ['Rackets', 'Balls', 'Shoes', 'Apparel'] },
+    { name: 'Volleyball', slug: 'volleyball', subcategories: ['Balls', 'Nets', 'Knee Pads', 'Shoes'] },
+    { name: 'Other', slug: 'other', subcategories: ['General', 'Accessories', 'Training Equipment'] },
+  ]
+
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="bg-white shadow-md sticky top-0 z-50">
+      {/* Row 1: Logo, Search, Actions */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Left: Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="text-2xl font-bold text-blue-600">
-              SportSwap
-            </div>
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <img
+              src="/images/logo/logo-wide.svg"
+              alt="SportSwap"
+              className="h-10 w-auto"
+            />
           </Link>
 
-          {/* Middle: Search Bar */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-xl mx-8">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for sports equipment..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-8">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search for sports equipment..."
+                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:border-blue-500 transition"
+              />
+            </div>
           </form>
 
-          {/* Right: Actions */}
+          {/* User Actions */}
           <div className="flex items-center space-x-6">
-            <Link to="/favorites" className="text-gray-600 hover:text-blue-600 transition" title="Favorites">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
+            <Link
+              to="/favorites"
+              className="text-gray-600 hover:text-blue-600 transition-colors"
+              title="Favorites"
+            >
+              <Heart className="w-6 h-6" />
             </Link>
 
-            <Link to="/messages" className="relative text-gray-600 hover:text-blue-600 transition" title="Messages">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
+            <Link
+              to="/messages"
+              className="relative text-gray-600 hover:text-blue-600 transition-colors"
+              title="Messages"
+            >
+              <MessageSquare className="w-6 h-6" />
               {unreadCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -241,7 +260,7 @@ function Header() {
 
             <Link
               to="/listings/new"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+              className="bg-blue-600 text-white px-6 py-2.5 rounded-full hover:bg-blue-700 transition font-medium shadow-md hover:shadow-lg"
             >
               Post an Ad
             </Link>
@@ -256,56 +275,51 @@ function Header() {
                     <img
                       src={profilePicture}
                       alt={username}
-                      className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                      className="w-9 h-9 rounded-full object-cover border-2 border-gray-200"
                     />
                   ) : (
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
+                    <div className="w-9 h-9 bg-gray-300 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-gray-600" />
                     </div>
                   )}
                   <span className="font-medium">@{username}</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <ChevronDown className="w-4 h-4" />
                 </button>
 
-                {/* Dropdown Menu */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
                     <Link
                       to={`/profile/${username}`}
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
+                      className="block px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition"
                       onClick={() => setDropdownOpen(false)}
                     >
                       My Profile
                     </Link>
                     <Link
                       to="/dashboard/listings"
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
+                      className="block px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Manage My Listings
                     </Link>
                     <Link
                       to="/dashboard/history"
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
+                      className="block px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition"
                       onClick={() => setDropdownOpen(false)}
                     >
                       My Orders / History
                     </Link>
                     <Link
                       to="/dashboard/settings"
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
+                      className="block px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Account Settings
                     </Link>
-                    <hr className="my-1 border-gray-200" />
+                    <hr className="my-2 border-gray-200" />
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 transition"
+                      className="w-full text-left px-4 py-2.5 text-red-600 hover:bg-gray-50 transition"
                     >
                       Log Out
                     </button>
@@ -324,27 +338,75 @@ function Header() {
         </div>
       </div>
 
-      {/* Megamenu */}
+      {/* Row 2: Navigation Links */}
       <div className="bg-gray-50 border-t border-gray-200">
         <div className="container mx-auto px-4">
-          <div className="flex items-center space-x-6 h-12 text-sm">
-            <Link to="/browse" className="text-gray-700 hover:text-blue-600 font-medium transition">
-              All Categories
+          <div className="flex items-center justify-center space-x-8 h-14 text-sm font-medium">
+            <div
+              className="relative"
+              ref={megaMenuRef}
+              onMouseEnter={() => setMegaMenuOpen(true)}
+              onMouseLeave={() => setMegaMenuOpen(false)}
+            >
+              <button className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 transition">
+                <span>All Categories</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {/* Mega Menu */}
+              {megaMenuOpen && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 w-screen max-w-4xl">
+                  <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-8">
+                    <div className="grid grid-cols-3 gap-8">
+                      {categories.map((category) => (
+                        <div key={category.slug}>
+                          <Link
+                            to={`/browse?category=${category.slug}`}
+                            className="font-semibold text-gray-900 hover:text-blue-600 transition mb-3 block"
+                            onClick={() => setMegaMenuOpen(false)}
+                          >
+                            {category.name}
+                          </Link>
+                          <ul className="space-y-2">
+                            {category.subcategories.map((sub) => (
+                              <li key={sub}>
+                                <Link
+                                  to={`/browse?category=${category.slug}`}
+                                  className="text-sm text-gray-600 hover:text-blue-600 transition"
+                                  onClick={() => setMegaMenuOpen(false)}
+                                >
+                                  {sub}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link to="/browse" className="text-gray-700 hover:text-blue-600 transition">
+              Browse All
             </Link>
-            <Link to="/browse?category=basketball" className="text-gray-600 hover:text-blue-600 transition">
-              Basketball
+
+            <Link to="/browse?sort=newest" className="text-gray-700 hover:text-blue-600 transition">
+              New Arrivals
             </Link>
-            <Link to="/browse?category=soccer" className="text-gray-600 hover:text-blue-600 transition">
-              Soccer
-            </Link>
-            <Link to="/browse?category=swimming" className="text-gray-600 hover:text-blue-600 transition">
-              Swimming
-            </Link>
-            <Link to="/browse?category=tennis" className="text-gray-600 hover:text-blue-600 transition">
-              Tennis
-            </Link>
-            <Link to="/browse?category=volleyball" className="text-gray-600 hover:text-blue-600 transition">
-              Volleyball
+
+            <Link
+              to="/#tech-stack"
+              onClick={(e) => {
+                if (window.location.pathname === '/') {
+                  e.preventDefault()
+                  document.getElementById('tech-stack')?.scrollIntoView({ behavior: 'smooth' })
+                }
+              }}
+              className="text-gray-700 hover:text-blue-600 transition"
+            >
+              About Project
             </Link>
           </div>
         </div>

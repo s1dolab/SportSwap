@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import ProductCard from '../components/ProductCard'
+import FilterSection from '../components/FilterSection'
 
 function BrowsePage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -17,6 +18,7 @@ function BrowsePage() {
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '')
   const [listingTypes, setListingTypes] = useState([])
   const [conditions, setConditions] = useState([])
+  const [locations, setLocations] = useState([])
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest')
   const [page, setPage] = useState(1)
   const itemsPerPage = 32
@@ -52,6 +54,11 @@ function BrowsePage() {
       { value: 'nets', label: 'Nets' },
       { value: 'knee_pads', label: 'Knee Pads' },
       { value: 'shoes', label: 'Shoes' }
+    ],
+    other: [
+      { value: 'general', label: 'General' },
+      { value: 'accessories', label: 'Accessories' },
+      { value: 'training_equipment', label: 'Training Equipment' }
     ]
   }
 
@@ -67,7 +74,7 @@ function BrowsePage() {
   // Fetch listings
   useEffect(() => {
     fetchListings()
-  }, [category, subcategories, searchQuery, minPrice, maxPrice, listingTypes, conditions, sortBy, page])
+  }, [category, subcategories, searchQuery, minPrice, maxPrice, listingTypes, conditions, locations, sortBy, page])
 
   const fetchListings = async () => {
     setLoading(true)
@@ -108,6 +115,10 @@ function BrowsePage() {
 
       if (conditions.length > 0) {
         query = query.in('condition', conditions)
+      }
+
+      if (locations.length > 0) {
+        query = query.in('city', locations)
       }
 
       // Apply sorting
@@ -175,6 +186,7 @@ function BrowsePage() {
     setMaxPrice('')
     setListingTypes([])
     setConditions([])
+    setLocations([])
     setSearchParams({})
     setPage(1)
   }
@@ -236,12 +248,20 @@ function BrowsePage() {
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div>
                 {/* Category */}
-                <div>
-                  <h3 className="font-medium mb-3">Category</h3>
+                <FilterSection title="Category">
                   <div className="space-y-2">
-                    {['basketball', 'soccer', 'swimming', 'tennis', 'volleyball'].map((cat) => (
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={category === ''}
+                        onChange={() => handleCategoryChange('')}
+                        className="mr-2"
+                      />
+                      <span>All Categories</span>
+                    </label>
+                    {['basketball', 'soccer', 'swimming', 'tennis', 'volleyball', 'other'].map((cat) => (
                       <label key={cat} className="flex items-center">
                         <input
                           type="radio"
@@ -252,22 +272,12 @@ function BrowsePage() {
                         <span className="capitalize">{cat}</span>
                       </label>
                     ))}
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        checked={category === ''}
-                        onChange={() => handleCategoryChange('')}
-                        className="mr-2"
-                      />
-                      <span>All Categories</span>
-                    </label>
                   </div>
-                </div>
+                </FilterSection>
 
                 {/* Subcategories - Show only when a category is selected */}
                 {category && categorySubcategories[category] && (
-                  <div className="pt-6 border-t border-gray-200">
-                    <h3 className="font-medium mb-3">Subcategory</h3>
+                  <FilterSection title="Subcategory">
                     <div className="space-y-2">
                       {categorySubcategories[category].map((subcat) => (
                         <label key={subcat.value} className="flex items-center">
@@ -281,12 +291,11 @@ function BrowsePage() {
                         </label>
                       ))}
                     </div>
-                  </div>
+                  </FilterSection>
                 )}
 
                 {/* Price */}
-                <div className="pt-6 border-t border-gray-200">
-                  <h3 className="font-medium mb-3">Price (€)</h3>
+                <FilterSection title="Price (€)">
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <input
@@ -312,11 +321,10 @@ function BrowsePage() {
                       Apply
                     </button>
                   </div>
-                </div>
+                </FilterSection>
 
                 {/* Listing Type */}
-                <div className="pt-6 border-t border-gray-200">
-                  <h3 className="font-medium mb-3">Listing Type</h3>
+                <FilterSection title="Listing Type">
                   <div className="space-y-2">
                     {[
                       { value: 'sale', label: 'For Sale' },
@@ -334,11 +342,10 @@ function BrowsePage() {
                       </label>
                     ))}
                   </div>
-                </div>
+                </FilterSection>
 
                 {/* Condition */}
-                <div className="pt-6 border-t border-gray-200">
-                  <h3 className="font-medium mb-3">Condition</h3>
+                <FilterSection title="Condition">
                   <div className="space-y-2">
                     {[
                       { value: 'new', label: 'New (with tags)' },
@@ -357,7 +364,28 @@ function BrowsePage() {
                       </label>
                     ))}
                   </div>
-                </div>
+                </FilterSection>
+
+                {/* Location */}
+                <FilterSection title="Location">
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {[
+                      'Rīga', 'Daugavpils', 'Liepāja', 'Jelgava', 'Jūrmala', 'Ventspils',
+                      'Rēzekne', 'Valmiera', 'Jēkabpils', 'Ogre', 'Salaspils', 'Tukums',
+                      'Cēsis', 'Sigulda', 'Olaine', 'Kuldīga'
+                    ].map((city) => (
+                      <label key={city} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={locations.includes(city)}
+                          onChange={() => handleCheckbox(city, locations, setLocations)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">{city}</span>
+                      </label>
+                    ))}
+                  </div>
+                </FilterSection>
               </div>
             </div>
           </aside>

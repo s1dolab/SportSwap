@@ -120,11 +120,6 @@ function ConversationView({ conversation, onMessageSent }) {
           filter: `conversation_id=eq.${conversation.id}`,
         },
         async (payload) => {
-          // Skip if this message was sent by the current user (it's handled optimistically)
-          if (payload.new.sender_id === user.id) {
-            return
-          }
-
           // Fetch the new message
           const { data: messageData, error: messageError } = await supabase
             .from('messages')
@@ -134,42 +129,35 @@ function ConversationView({ conversation, onMessageSent }) {
 
           if (messageError || !messageData) return
 
-          // Check for duplicates before adding
+          // Fetch sender profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, username, profile_picture_url')
+            .eq('id', messageData.sender_id)
+            .single()
+
+          if (profileError || !profileData) return
+
+          const messageWithProfile = {
+            ...messageData,
+            sender: { id: messageData.sender_id },
+            sender_profile: profileData
+          }
+
+          // Add message to state with duplicate check
           setMessages(prev => {
             const isDuplicate = prev.some(msg => msg.id === messageData.id)
             if (isDuplicate) return prev
-
-            // Fetch sender profile and add message
-            supabase
-              .from('profiles')
-              .select('id, username, profile_picture_url')
-              .eq('id', messageData.sender_id)
-              .single()
-              .then(({ data: profileData, error: profileError }) => {
-                if (!profileError && profileData) {
-                  const messageWithProfile = {
-                    ...messageData,
-                    sender: { id: messageData.sender_id },
-                    sender_profile: profileData
-                  }
-
-                  setMessages(current => {
-                    // Double-check for duplicates
-                    const stillDuplicate = current.some(msg => msg.id === messageData.id)
-                    if (stillDuplicate) return current
-                    return [...current, messageWithProfile]
-                  })
-
-                  // Mark as read since it's from the other user
-                  supabase
-                    .from('messages')
-                    .update({ read_at: new Date().toISOString() })
-                    .eq('id', messageData.id)
-                }
-              })
-
-            return prev
+            return [...prev, messageWithProfile]
           })
+
+          // Mark as read if not sent by current user
+          if (messageData.sender_id !== user.id) {
+            await supabase
+              .from('messages')
+              .update({ read_at: new Date().toISOString() })
+              .eq('id', messageData.id)
+          }
         }
       )
       .subscribe()
@@ -183,54 +171,27 @@ function ConversationView({ conversation, onMessageSent }) {
     if (!newMessage.trim() || sending) return
 
     const messageContent = newMessage.trim()
-    const tempId = `temp-${Date.now()}`
 
     try {
       setSending(true)
+      setNewMessage('') // Clear input immediately for better UX
 
-      // Fetch current user profile for optimistic update
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, username, profile_picture_url')
-        .eq('id', user.id)
-        .single()
-
-      // Optimistic UI: Add message immediately to local state
-      const optimisticMessage = {
-        id: tempId,
-        conversation_id: conversation.id,
-        sender_id: user.id,
-        content: messageContent,
-        created_at: new Date().toISOString(),
-        read_at: null,
-        sender: { id: user.id },
-        sender_profile: profileData
-      }
-
-      setMessages(prev => [...prev, optimisticMessage])
-      setNewMessage('')
-
-      // Send to database
-      const { data: newMessageData, error } = await supabase
+      // Send to database - the realtime subscription will handle adding it to the UI
+      const { error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           sender_id: user.id,
           content: messageContent,
         })
-        .select()
-        .single()
 
       if (error) throw error
 
-      // Replace temp message with real one
-      setMessages(prev => prev.map(msg =>
-        msg.id === tempId ? {
-          ...newMessageData,
-          sender: { id: user.id },
-          sender_profile: profileData
-        } : msg
-      ))
+      // Update last_message_at for conversation ordering
+      await supabase
+        .from('conversations')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', conversation.id)
 
       // Notify parent to refresh conversations list
       if (onMessageSent) {
@@ -239,10 +200,7 @@ function ConversationView({ conversation, onMessageSent }) {
     } catch (error) {
       console.error('Error sending message:', error)
       setToast({ message: 'Failed to send message. Please try again.', type: 'error' })
-
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(msg => msg.id !== tempId))
-      setNewMessage(messageContent) // Restore the message text
+      setNewMessage(messageContent) // Restore the message text on error
     } finally {
       setSending(false)
     }

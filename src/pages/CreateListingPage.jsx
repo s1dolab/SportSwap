@@ -35,6 +35,7 @@ function CreateListingPage() {
     swimming: ['Goggles', 'Swimsuits', 'Caps', 'Accessories'],
     tennis: ['Rackets', 'Balls', 'Shoes', 'Apparel'],
     volleyball: ['Balls', 'Nets', 'Knee Pads', 'Shoes'],
+    other: ['General', 'Accessories', 'Training Equipment'],
   }
 
   // Fetch listing data if in edit mode
@@ -322,6 +323,7 @@ function CreateListingPage() {
                     <option value="swimming">Swimming</option>
                     <option value="tennis">Tennis</option>
                     <option value="volleyball">Volleyball</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
 
@@ -605,14 +607,30 @@ function CreateListingPage() {
                     disabled
                     className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
                   />
-                  <input
-                    type="text"
+                  <select
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="City / Town"
                     className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                  />
+                  >
+                    <option value="">Select City</option>
+                    <option value="Rīga">Rīga</option>
+                    <option value="Daugavpils">Daugavpils</option>
+                    <option value="Liepāja">Liepāja</option>
+                    <option value="Jelgava">Jelgava</option>
+                    <option value="Jūrmala">Jūrmala</option>
+                    <option value="Ventspils">Ventspils</option>
+                    <option value="Rēzekne">Rēzekne</option>
+                    <option value="Valmiera">Valmiera</option>
+                    <option value="Jēkabpils">Jēkabpils</option>
+                    <option value="Ogre">Ogre</option>
+                    <option value="Salaspils">Salaspils</option>
+                    <option value="Tukums">Tukums</option>
+                    <option value="Cēsis">Cēsis</option>
+                    <option value="Sigulda">Sigulda</option>
+                    <option value="Olaine">Olaine</option>
+                    <option value="Kuldīga">Kuldīga</option>
+                  </select>
                 </div>
               </div>
             </div>

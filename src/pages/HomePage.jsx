@@ -42,7 +42,7 @@ function HomePage() {
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
-        .limit(8)
+        .limit(15)
 
       if (error) throw error
 
@@ -109,9 +109,13 @@ function HomePage() {
               <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : recentListings.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="flex overflow-x-auto gap-3 snap-x scrollbar-hide -mx-4 px-4 pb-6">
               {recentListings.map((listing) => (
-                <ProductCard key={listing.id} listing={listing} />
+                <ProductCard
+                  key={listing.id}
+                  listing={listing}
+                  className="w-64 flex-shrink-0 snap-start"
+                />
               ))}
             </div>
           ) : (

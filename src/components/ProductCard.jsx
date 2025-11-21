@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
-function ProductCard({ listing, onFavoriteChange }) {
+function ProductCard({ listing, onFavoriteChange, className }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [isFavorited, setIsFavorited] = useState(false)
@@ -115,10 +115,11 @@ function ProductCard({ listing, onFavoriteChange }) {
     : null
 
   return (
-    <Link
-      to={`/listings/${listing.id}`}
-      className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 group"
-    >
+    <div className={className}>
+      <Link
+        to={`/listings/${listing.id}`}
+        className="flex flex-col h-full bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 group"
+      >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-gray-100">
         <img
@@ -157,9 +158,9 @@ function ProductCard({ listing, onFavoriteChange }) {
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-1">
         {/* Title */}
-        <h3 className="font-semibold text-gray-900 line-clamp-2 mb-2 group-hover:text-blue-600 transition">
+        <h3 className="font-semibold text-gray-900 line-clamp-2 mb-2 min-h-[3rem] group-hover:text-blue-600 transition">
           {listing.title}
         </h3>
 
@@ -187,7 +188,7 @@ function ProductCard({ listing, onFavoriteChange }) {
         </div>
 
         {/* Seller */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+        <div className="flex items-center justify-between pt-2 mt-auto border-t border-gray-200">
           <button
             onClick={(e) => {
               e.preventDefault()
@@ -220,7 +221,8 @@ function ProductCard({ listing, onFavoriteChange }) {
           </div>
         </div>
       </div>
-    </Link>
+      </Link>
+    </div>
   )
 }
 

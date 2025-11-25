@@ -9,15 +9,17 @@ A modern, full-featured marketplace for buying and selling sports equipment. Bui
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Screenshots](#screenshots)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Database Schema](#database-schema)
-- [Contributing](#contributing)
-- [License](#license)
+- [🎯 Overview](#-overview)
+- [✨ Features](#-features)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [📸 Screenshots](#-screenshots)
+- [🚀 Getting Started](#-getting-started)
+- [📁 Project Structure](#-project-structure)
+- [🗄️ Database Schema](#️-database-schema)
+- [🔒 Security Features](#-security-features)
+- [🎓 Educational Purpose](#-educational-purpose)
+- [🤝 Contributing](#-contributing)
+- [📝 License](#-license)
 
 ## 🎯 Overview
 
@@ -79,10 +81,12 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **React 18.3.1** - UI library
-- **Vite 6.0.1** - Build tool and dev server
-- **React Router 7.1.1** - Client-side routing
+- **React 18.3.1** - UI library with hooks and functional components
+- **Vite 6.0.1** - Lightning-fast build tool and dev server
+- **React Router 7.9.6** - Client-side routing and navigation
 - **Tailwind CSS 3.4.17** - Utility-first CSS framework
+- **Framer Motion** - Smooth animations and transitions
+- **Lucide React** - Modern icon library
 
 ### Backend
 - **Supabase** - Backend as a Service
@@ -90,7 +94,7 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
   - Real-time subscriptions
   - Row Level Security (RLS)
   - Storage for images
-  - Authentication
+  - Authentication & Authorization
 
 ### Hosting & Deployment
 - **Vercel** - Frontend hosting with automatic deployments
@@ -99,28 +103,28 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 ## 📸 Screenshots
 
 ### Homepage
-![Homepage Screenshot](./screenshots/homepage.png)
+![Homepage Screenshot](./public/images/screenshots/homepage.png)
 
 ### Browse Listings
-![Browse Listings Screenshot](./screenshots/browse.png)
+![Browse Listings Screenshot](./public/images/screenshots/browse.png)
 
 ### Listing Detail
-![Listing Detail Screenshot](./screenshots/listing-detail.png)
+![Listing Detail Screenshot](./public/images/screenshots/listing-detail.png)
 
 ### Real-Time Messaging
-![Messaging Screenshot](./screenshots/messages.png)
+![Messaging Screenshot](./public/images/screenshots/messages.png)
 
 ### User Profile
-![User Profile Screenshot](./screenshots/profile.png)
+![User Profile Screenshot](./public/images/screenshots/profile.png)
 
 ### Create Listing
-![Create Listing Screenshot](./screenshots/create-listing.png)
+![Create Listing Screenshot](./public/images/screenshots/create-listing.png)
 
 ### Offers & Transactions
-![Offers Screenshot](./screenshots/offers.png)
+![Offers Screenshot](./public/images/screenshots/offers.png)
 
 ### Review System
-![Reviews Screenshot](./screenshots/reviews.png)
+![Reviews Screenshot](./public/images/screenshots/reviews.png)
 
 ## 🚀 Getting Started
 
@@ -156,18 +160,13 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 
 4. **Set up the database**
 
-   Run the following SQL in your Supabase SQL Editor to create all necessary tables and policies:
+   - Navigate to your Supabase project dashboard
+   - Go to SQL Editor
+   - Copy the contents of `/database/00_schema.sql`
+   - Paste and execute in the SQL Editor
+   - Create two storage buckets: `profile-pictures` and `listing-images` (public access)
 
-   - Create profiles table
-   - Create listings table with images
-   - Create conversations and messages tables
-   - Create offers table
-   - Create transactions table
-   - Create reviews table
-   - Set up Row Level Security (RLS) policies
-   - Create necessary indexes
-
-   *(SQL schema documentation available in `/database` folder)*
+   See `/database/README.md` for detailed setup instructions.
 
 5. **Start the development server**
    ```bash
@@ -182,26 +181,34 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 
 ```
 SportSwap/
-├── public/              # Static assets
+├── public/
+│   └── images/
+│       ├── logo/               # Brand logos
+│       └── screenshots/        # App screenshots
 ├── src/
-│   ├── components/      # Reusable React components
+│   ├── components/             # Reusable React components
 │   │   ├── ConfirmationModal.jsx
 │   │   ├── ConversationView.jsx
+│   │   ├── DashboardLayout.jsx
+│   │   ├── FilterSection.jsx
+│   │   ├── Footer.jsx
+│   │   ├── Header.jsx
 │   │   ├── MakeOfferModal.jsx
-│   │   ├── Navbar.jsx
-│   │   ├── OffersPanel.jsx
+│   │   ├── PasswordInput.jsx
 │   │   ├── ProductCard.jsx
+│   │   ├── ProtectedRoute.jsx
 │   │   ├── ReviewModal.jsx
+│   │   ├── ScrollToTop.jsx
 │   │   └── Toast.jsx
-│   ├── contexts/        # React Context providers
+│   ├── contexts/               # React Context providers
 │   │   └── AuthContext.jsx
-│   ├── lib/            # Utility functions and configs
+│   ├── lib/                   # Utility functions and configs
 │   │   └── supabase.js
-│   ├── pages/          # Page components
+│   ├── pages/                 # Page components
+│   │   ├── AccountSettingsPage.jsx
 │   │   ├── AuthPage.jsx
 │   │   ├── BrowsePage.jsx
 │   │   ├── CreateListingPage.jsx
-│   │   ├── DashboardPage.jsx
 │   │   ├── FavoritesPage.jsx
 │   │   ├── HomePage.jsx
 │   │   ├── ListingDetailPage.jsx
@@ -209,12 +216,14 @@ SportSwap/
 │   │   ├── MyListingsPage.jsx
 │   │   ├── MyOffersPage.jsx
 │   │   ├── OrderHistoryPage.jsx
-│   │   ├── PublicProfilePage.jsx
-│   │   └── SettingsPage.jsx
-│   ├── App.jsx         # Main app component with routing
-│   ├── index.css       # Global styles and Tailwind imports
-│   └── main.jsx        # App entry point
-├── .env.example        # Environment variables template
+│   │   └── PublicProfilePage.jsx
+│   ├── App.jsx                # Main app component with routing
+│   ├── index.css              # Global styles and Tailwind imports
+│   └── main.jsx               # App entry point
+├── database/                   # Database schema and setup
+│   ├── 00_schema.sql          # Complete database schema
+│   └── README.md              # Database setup guide
+├── .env.example               # Environment variables template
 ├── .gitignore
 ├── eslint.config.js
 ├── index.html
@@ -228,38 +237,49 @@ SportSwap/
 ## 🗄️ Database Schema
 
 ### Main Tables
-- **profiles** - User profile information
-- **listings** - Product listings with details
-- **listing_images** - Multiple images per listing
-- **conversations** - Chat threads between users
-- **messages** - Individual messages in conversations
-- **offers** - Price offers on listings
+- **profiles** - User profile information extending Supabase auth
+- **listings** - Product listings with category, condition, and price details
+- **listing_images** - Multiple images per listing with ordering
+- **conversations** - Chat threads between buyers and sellers
+- **messages** - Individual messages with read status
+- **offers** - Price negotiation offers with status tracking
 - **transactions** - Completed sales records
-- **reviews** - User ratings and feedback
+- **reviews** - User ratings and feedback (1-5 stars)
 - **favorites** - User's saved listings
 
-All tables include Row Level Security (RLS) policies to ensure data privacy and security.
+### Key Features
+- **Row Level Security (RLS)** on all tables
+- **Indexes** for optimized query performance
+- **Triggers** for automatic timestamp updates
+- **Foreign keys** maintaining data integrity
+- **Check constraints** ensuring data validity
+
+For complete schema and setup instructions, see [`/database/README.md`](./database/README.md)
 
 ## 🔒 Security Features
 
-- Row Level Security (RLS) on all database tables
+- **Row Level Security (RLS)** on all database tables
 - Authentication required for sensitive operations
 - Secure image upload with Supabase Storage
 - Environment variables for sensitive configuration
 - SQL injection prevention through Supabase client
 - XSS protection with React's built-in escaping
+- Protected routes requiring authentication
+- User can only modify their own data
 
 ## 🎓 Educational Purpose
 
 This project was developed as a comprehensive full-stack web application demonstration, showcasing:
-- Modern React patterns and hooks
-- Real-time functionality with WebSockets
-- Database design and relationships
-- User authentication and authorization
-- RESTful API integration
-- Responsive web design
-- State management
-- File upload handling
+- Modern React patterns and hooks (useState, useEffect, useContext)
+- Real-time functionality with WebSockets/Supabase Realtime
+- Database design and relational data modeling
+- User authentication and authorization with RLS
+- RESTful API integration through Supabase client
+- Responsive web design with Tailwind CSS
+- State management with React Context
+- File upload handling and image optimization
+- Complex UI components and modals
+- Form validation and error handling
 
 ## 🤝 Contributing
 
@@ -276,10 +296,12 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgments
 
-- Supabase for the amazing backend platform
-- Tailwind CSS for the utility-first CSS framework
-- React team for the powerful UI library
-- Vite for the lightning-fast build tool
+- [Supabase](https://supabase.com) for the amazing backend platform
+- [Tailwind CSS](https://tailwindcss.com) for the utility-first CSS framework
+- [React](https://react.dev) team for the powerful UI library
+- [Vite](https://vitejs.dev) for the lightning-fast build tool
+- [Framer Motion](https://www.framer.com/motion/) for smooth animations
+- [Lucide](https://lucide.dev) for beautiful icons
 
 ---
 

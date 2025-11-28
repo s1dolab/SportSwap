@@ -11,34 +11,33 @@
   </p>
 </div>
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [🎯 Overview](#-overview)
-- [✨ Features](#-features)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [📸 Screenshots](#-screenshots)
-- [🚀 Getting Started](#-getting-started)
-- [📁 Project Structure](#-project-structure)
-- [🗄️ Database Schema](#️-database-schema)
-- [🔒 Security Features](#-security-features)
-- [🎓 Educational Purpose](#-educational-purpose)
-- [🤝 Contributing](#-contributing)
-- [📝 License](#-license)
+- [Overview](#overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Screenshots](#screenshots)
+- [Getting Started](#getting-started)
+- [Database Schema](#database-schema)
+- [Security Features](#security-features)
+- [Educational Purpose](#educational-purpose)
+- [Contributing](#contributing)
+- [License](#license)
 
-## 🎯 Overview
+## Overview
 
 SportSwap is a comprehensive peer-to-peer marketplace designed specifically for sports enthusiasts to buy, sell, and trade sports equipment. The platform features real-time messaging, offer negotiation, user reviews, and a seamless transaction system.
 
-## ✨ Features
+## Features
 
-### 🔐 Authentication & User Management
+### Authentication & User Management
 - Secure user registration and login with email/password
 - Protected routes and session management
 - User profile creation and customization
 - Profile pictures and cover photos
 - Bio and personal information
 
-### 📦 Listings & Browse System
+### Listings & Browse System
 - Create detailed listings with multiple images
 - Image upload and management
 - Category and subcategory filtering
@@ -48,14 +47,14 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 - Draft and published listing states
 - Edit and delete listings
 
-### 💬 Real-Time Messaging
+### Real-Time Messaging
 - Direct messaging between buyers and sellers
 - Real-time message updates with Supabase subscriptions
 - Conversation threads linked to specific listings
 - Unread message indicators
 - Message history and timestamps
 
-### 💰 Offers & Transactions
+### Offers & Transactions
 - Make offers on listings
 - Counter-offer functionality
 - Accept/decline offer system
@@ -64,7 +63,7 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 - Optional offer messages
 - Mark listings as sold
 
-### ⭐ Review & Reputation System
+### Review & Reputation System
 - Rate buyers and sellers after transactions
 - 5-star rating system with comments
 - Average rating display on profiles
@@ -72,7 +71,7 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 - Order history (bought and sold items)
 - One review per transaction policy
 
-### 🎨 User Experience
+### User Experience
 - Responsive mobile-first design
 - Professional confirmation modals
 - Toast notifications
@@ -82,7 +81,7 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 - Favorites system
 - Dashboard with quick stats
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - **React 18.3.1** - UI library with hooks and functional components
@@ -104,7 +103,7 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 - **Vercel** - Frontend hosting with automatic deployments
 - **Supabase Cloud** - Database and backend hosting
 
-## 📸 Screenshots
+## Screenshots
 
 ### Homepage
 ![Homepage Screenshot](./public/images/screenshots/homepage.png)
@@ -130,7 +129,7 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 ### Review System
 ![Reviews Screenshot](./public/images/screenshots/reviews.png)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js 18+ and npm
@@ -181,64 +180,7 @@ SportSwap is a comprehensive peer-to-peer marketplace designed specifically for 
 
    Navigate to `http://localhost:5173`
 
-## 📁 Project Structure
-
-```
-SportSwap/
-├── public/
-│   └── images/
-│       ├── logo/               # Brand logos
-│       └── screenshots/        # App screenshots
-├── src/
-│   ├── components/             # Reusable React components
-│   │   ├── ConfirmationModal.jsx
-│   │   ├── ConversationView.jsx
-│   │   ├── DashboardLayout.jsx
-│   │   ├── FilterSection.jsx
-│   │   ├── Footer.jsx
-│   │   ├── Header.jsx
-│   │   ├── MakeOfferModal.jsx
-│   │   ├── PasswordInput.jsx
-│   │   ├── ProductCard.jsx
-│   │   ├── ProtectedRoute.jsx
-│   │   ├── ReviewModal.jsx
-│   │   ├── ScrollToTop.jsx
-│   │   └── Toast.jsx
-│   ├── contexts/               # React Context providers
-│   │   └── AuthContext.jsx
-│   ├── lib/                   # Utility functions and configs
-│   │   └── supabase.js
-│   ├── pages/                 # Page components
-│   │   ├── AccountSettingsPage.jsx
-│   │   ├── AuthPage.jsx
-│   │   ├── BrowsePage.jsx
-│   │   ├── CreateListingPage.jsx
-│   │   ├── FavoritesPage.jsx
-│   │   ├── HomePage.jsx
-│   │   ├── ListingDetailPage.jsx
-│   │   ├── MessagesPage.jsx
-│   │   ├── MyListingsPage.jsx
-│   │   ├── MyOffersPage.jsx
-│   │   ├── OrderHistoryPage.jsx
-│   │   └── PublicProfilePage.jsx
-│   ├── App.jsx                # Main app component with routing
-│   ├── index.css              # Global styles and Tailwind imports
-│   └── main.jsx               # App entry point
-├── database/                   # Database schema and setup
-│   ├── 00_schema.sql          # Complete database schema
-│   └── README.md              # Database setup guide
-├── .env.example               # Environment variables template
-├── .gitignore
-├── eslint.config.js
-├── index.html
-├── package.json
-├── postcss.config.js
-├── tailwind.config.js
-├── vite.config.js
-└── README.md
-```
-
-## 🗄️ Database Schema
+## Database Schema
 
 ### Main Tables
 - **profiles** - User profile information extending Supabase auth
@@ -260,7 +202,7 @@ SportSwap/
 
 For complete schema and setup instructions, see [`/database/README.md`](./database/README.md)
 
-## 🔒 Security Features
+## Security Features
 
 - **Row Level Security (RLS)** on all database tables
 - Authentication required for sensitive operations
@@ -271,7 +213,7 @@ For complete schema and setup instructions, see [`/database/README.md`](./databa
 - Protected routes requiring authentication
 - User can only modify their own data
 
-## 🎓 Educational Purpose
+## Educational Purpose
 
 This project was developed as a comprehensive full-stack web application demonstration, showcasing:
 - Modern React patterns and hooks (useState, useEffect, useContext)
@@ -285,20 +227,20 @@ This project was developed as a comprehensive full-stack web application demonst
 - Complex UI components and modals
 - Form validation and error handling
 
-## 🤝 Contributing
+## Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/s1dolab/SportSwap/issues).
 
-## 📝 License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
-## 👥 Authors
+## Authors
 
 **s1dolab**
 - GitHub: [@s1dolab](https://github.com/s1dolab)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Supabase](https://supabase.com) for the amazing backend platform
 - [Tailwind CSS](https://tailwindcss.com) for the utility-first CSS framework
@@ -306,7 +248,3 @@ This project is open source and available under the [MIT License](LICENSE).
 - [Vite](https://vitejs.dev) for the lightning-fast build tool
 - [Framer Motion](https://www.framer.com/motion/) for smooth animations
 - [Lucide](https://lucide.dev) for beautiful icons
-
----
-
-**Built with ❤️ for the sports community**
